@@ -1,5 +1,2 @@
 # SPA路由重定向 - 确保所有前端路由都指向index.html
 /*    /index.html   200
-
-# API代理 - 将/api/supabase请求代理到Supabase
-/api/supabase/*  https://husdiczqouillhvovodl.supabase.co/:splat  200 

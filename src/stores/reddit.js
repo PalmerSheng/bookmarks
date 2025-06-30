@@ -13,24 +13,50 @@ export const useRedditStore = defineStore('reddit', () => {
   const isSearching = ref(false)
   const searchError = ref(null)
 
-  // Supabase configuration - 优化生产环境配置
-  const SUPABASE_URL = import.meta.env.DEV 
-    ? '/api/supabase/functions/v1/clever-action'  // 开发环境使用代理
-    : (import.meta.env.VITE_SUPABASE_URL || 'https://husdiczqouillhvovodl.supabase.co/functions/v1/clever-action')  // 生产环境
-  
+  // 环境检测
+  const isProduction = import.meta.env.PROD
+  const isDevelopment = import.meta.env.DEV
+
+  // Supabase Edge Function URL - 生产环境直接调用
+  const SUPABASE_FUNCTION_URL = isProduction 
+    ? 'https://husdiczqouillhvovodl.supabase.co/functions/v1/clever-action'
+    : '/api/supabase/functions/v1/clever-action'
+
+  // Bearer Token - 使用环境变量或fallback
   const SUPABASE_BEARER_TOKEN = import.meta.env.VITE_SUPABASE_TOKEN 
     ? `Bearer ${import.meta.env.VITE_SUPABASE_TOKEN}`
     : 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1c2RpY3pxb3VpbGxodm92b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4OTM2NTUsImV4cCI6MjA2NjQ2OTY1NX0.-ejxki8XiXECuGVOVVi9d5WgyHVefy0nxbu4qftMsLw'
 
-  // 简化的axios配置
-  const axiosConfig = {
-    timeout: 30000,
-    headers: {
+  // 生产环境的请求配置 - 专为Cloudflare Pages优化
+  const createRequestConfig = () => {
+    const headers = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
       'Authorization': SUPABASE_BEARER_TOKEN
-    },
-    withCredentials: false
+    }
+
+    if (isProduction) {
+      // 生产环境使用CORS模式
+      return {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          ...headers,
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        credentials: 'omit' // 避免凭据相关的CORS问题
+      }
+    } else {
+      // 开发环境使用axios代理
+      return {
+        timeout: 30000,
+        headers: {
+          ...headers,
+          'Accept': 'application/json'
+        },
+        withCredentials: false
+      }
+    }
   }
 
   // Getters
@@ -42,30 +68,15 @@ export const useRedditStore = defineStore('reddit', () => {
   const hasError = computed(() => error.value !== null)
   const hasSearchError = computed(() => searchError.value !== null)
 
-  // 简化的Supabase函数调用，通过代理避免CORS问题
-  const callSupabaseFunction = async (subreddits, limit = 10, forceRefresh = false) => {
-    console.log('🚀 调用Supabase Edge Function:', {
-      url: SUPABASE_URL,
-      subreddits,
-      limit,
-      forceRefresh
-    })
-
-    const requestBody = {
-      subreddits: subreddits,
-      limit: limit,
-      force_refresh: forceRefresh
-    }
-
+  // 生产环境专用的fetch请求
+  const makeProductionRequest = async (requestBody) => {
+    console.log('🌐 Production request to:', SUPABASE_FUNCTION_URL)
+    
+    const config = createRequestConfig()
+    
     try {
-      // 使用fetch API
-      const response = await fetch(SUPABASE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': SUPABASE_BEARER_TOKEN,
-          'Accept': 'application/json'
-        },
+      const response = await fetch(SUPABASE_FUNCTION_URL, {
+        ...config,
         body: JSON.stringify(requestBody)
       })
 
@@ -74,80 +85,95 @@ export const useRedditStore = defineStore('reddit', () => {
       if (!response.ok) {
         const errorText = await response.text()
         console.error('❌ Response error:', errorText)
-        throw new Error(`HTTP ${response.status}: ${response.statusText}. ${errorText}`)
+        
+        // 特殊处理常见的HTTP错误
+        if (response.status === 404) {
+          throw new Error('Supabase Edge Function not found. Please check the deployment.')
+        } else if (response.status === 401) {
+          throw new Error('Authentication failed. Please check your API token.')
+        } else if (response.status >= 500) {
+          throw new Error('Server error. Please try again later.')
+        }
+        
+        throw new Error(`Request failed: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
-      console.log('✅ Response data:', data)
+      console.log('✅ Response data received')
 
       if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch data from Supabase')
+        throw new Error(data.message || 'Request was not successful')
       }
 
       return data.data
 
     } catch (fetchError) {
-      console.warn('⚠️ Fetch failed, trying axios:', fetchError.message)
+      console.error('❌ Production request failed:', fetchError)
       
-      // Fallback to axios
-      try {
-        const response = await axios({
-          method: 'POST',
-          url: SUPABASE_URL,
-          data: requestBody,
-          ...axiosConfig
-        })
-
-        console.log('📥 Axios response:', response.status, response.statusText)
-
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Failed to fetch data from Supabase')
-        }
-
-        return response.data.data
-
-      } catch (axiosError) {
-        console.error('❌ Both fetch and axios failed:', axiosError)
-        
-        // 如果是开发环境且是CORS错误，尝试简化的请求
-        if (import.meta.env.DEV && (axiosError.code === 'ERR_NETWORK' || axiosError.message.includes('CORS'))) {
-          console.warn('🔄 尝试简化的请求方式...')
-          return await simplifiedRequest(requestBody)
-        }
-        
-        if (axiosError.response?.status === 404) {
-          throw new Error('函数未找到(404)。请确保Edge Function已正确部署。')
-        } else if (axiosError.response?.status >= 500) {
-          throw new Error(`服务器错误(${axiosError.response.status})。请检查Supabase函数日志。`)
-        }
-        
-        throw new Error(axiosError.response?.data?.message || axiosError.message || '请求失败')
+      // 如果是网络错误，提供更友好的错误信息
+      if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection.')
       }
+      
+      throw fetchError
     }
   }
 
-  // 简化的请求方法作为最后的备用方案
-  const simplifiedRequest = async (requestBody) => {
+  // 开发环境的axios请求
+  const makeDevelopmentRequest = async (requestBody) => {
+    console.log('🔧 Development request via proxy:', SUPABASE_FUNCTION_URL)
+    
+    const config = createRequestConfig()
+    
     try {
-      const response = await fetch('https://husdiczqouillhvovodl.supabase.co/functions/v1/clever-action', {
+      const response = await axios({
         method: 'POST',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
+        url: SUPABASE_FUNCTION_URL,
+        data: requestBody,
+        ...config
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+      console.log('📥 Axios response:', response.status)
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Request was not successful')
       }
 
-      const data = await response.json()
-      return data.data || data
+      return response.data.data
+
+    } catch (axiosError) {
+      console.error('❌ Development request failed:', axiosError)
       
-    } catch (error) {
-      console.error('简化请求也失败了:', error)
-      throw new Error('所有请求方式都失败了，请检查网络连接')
+      if (axiosError.response?.status === 404) {
+        throw new Error('API endpoint not found. Please check the proxy configuration.')
+      } else if (axiosError.response?.status >= 500) {
+        throw new Error('Server error. Please check the Supabase function logs.')
+      }
+      
+      throw new Error(axiosError.response?.data?.message || axiosError.message || 'Request failed')
+    }
+  }
+
+  // 统一的API调用函数
+  const callSupabaseFunction = async (subreddits, limit = 10, forceRefresh = false) => {
+    const requestBody = {
+      subreddits: subreddits,
+      limit: limit,
+      force_refresh: forceRefresh
+    }
+
+    console.log('🚀 Making API request:', {
+      environment: isProduction ? 'production' : 'development',
+      url: SUPABASE_FUNCTION_URL,
+      subreddits,
+      limit,
+      forceRefresh
+    })
+
+    if (isProduction) {
+      return await makeProductionRequest(requestBody)
+    } else {
+      return await makeDevelopmentRequest(requestBody)
     }
   }
 
@@ -159,6 +185,7 @@ export const useRedditStore = defineStore('reddit', () => {
     try {
       const data = await callSupabaseFunction(subreddits, limit, forceRefresh)
       posts.value = data
+      console.log('✅ Posts fetched successfully')
     } catch (err) {
       error.value = err.message || 'Failed to fetch posts'
       console.error('Error fetching posts:', err)
@@ -167,7 +194,7 @@ export const useRedditStore = defineStore('reddit', () => {
     }
   }
 
-  // Search subreddit function - now using Supabase edge function
+  // Search subreddit function
   const searchSubreddit = async (subredditName, limit = 10) => {
     isSearching.value = true
     searchError.value = null
@@ -220,6 +247,8 @@ export const useRedditStore = defineStore('reddit', () => {
         },
         posts: formattedPosts
       }
+
+      console.log('✅ Subreddit search completed successfully')
 
     } catch (err) {
       console.error('Error searching subreddit:', err)
