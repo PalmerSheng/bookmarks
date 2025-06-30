@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "title": "Reddit Top Posts",
+    "subtitle": "Discover Popular Content",
+    "home": "Home",
+    "reddit": "Reddit Overview",
+    "calculator": "Calculator"
+  },
+  "home": {
+    "welcome": {
+      "title": "Welcome to Reddit Explorer",
+      "subtitle": "Your gateway to discover trending topics, analyze data, and explore the best of Reddit communities"
+    },
+    "features": {
+      "reddit": {
+        "title": "Reddit Overview",
+        "description": "Browse and explore trending posts from popular subreddits. Discover what's hot across different communities.",
+        "action": "Explore Reddit"
+      },
+      "calculator": {
+        "title": "Calculator",
+        "description": "Perform calculations with our easy-to-use calculator. Perfect for quick computations and data analysis.",
+        "action": "Open Calculator"
+      }
+    },
+    "navigation": {
+      "hint": "Use the navigation bar above to explore different features of the application."
+    }
+  },
+  "subreddits": {
+    "title": "Popular Subreddits",
+    "loading": "Loading...",
+    "error": "Failed to load, please try again",
+    "noData": "No posts available",
+    "retry": "Retry",
+    "refresh": "Refresh"
+  },
+  "search": {
+    "placeholder": "Search subreddit (e.g: programming, technology...)",
+    "button": "Search",
+    "suggestions": "Suggested Communities",
+    "searching": "Searching...",
+    "noResults": "No communities found",
+    "error": "Search failed, please try again",
+    "searchResults": "Search Results"
+  },
+  "subreddit": {
+    "members": "Members",
+    "online": "Online",
+    "created": "Created",
+    "visitReddit": "Visit Reddit",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "topPosts": "Top Posts",
+    "noPosts": "No posts available",
+    "notFound": "Community not found",
+    "private": "Private community",
+    "banned": "Community banned"
+  },
+  "post": {
+    "author": "Author",
+    "score": "Score",
+    "comments": "Comments",
+    "posts": "Posts",
+    "readMore": "Read More",
+    "readLess": "Read Less",
+    "viewOnReddit": "View on Reddit"
+  },
+  "reddit": {
+    "overview": {
+      "title": "Reddit Overview",
+      "subtitle": "Explore trending topics and popular discussions across multiple communities"
+    }
+  },
+  "calculator": {
+    "title": "Calculator",
+    "history": "History",
+    "clearHistory": "Clear History"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "back": "Back"
+  },
+  "footer": {
+    "copyright": "Reddit Top Posts © 2025"
+  }
+} 

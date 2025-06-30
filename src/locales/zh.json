@@ -1,0 +1,89 @@
+{
+  "nav": {
+    "title": "Reddit 热门帖子",
+    "subtitle": "发现热门内容",
+    "home": "首页",
+    "reddit": "Reddit 概览",
+    "calculator": "计算器"
+  },
+  "home": {
+    "welcome": {
+      "title": "欢迎来到 Reddit 探索器",
+      "subtitle": "您发现热门话题、分析数据并探索 Reddit 最佳社区的门户"
+    },
+    "features": {
+      "reddit": {
+        "title": "Reddit 概览",
+        "description": "浏览和探索热门 subreddit 的流行帖子。发现不同社区的热门内容。",
+        "action": "探索 Reddit"
+      },
+      "calculator": {
+        "title": "计算器",
+        "description": "使用我们易于使用的计算器进行计算。非常适合快速计算和数据分析。",
+        "action": "打开计算器"
+      }
+    },
+    "navigation": {
+      "hint": "使用上方的导航栏探索应用程序的不同功能。"
+    }
+  },
+  "subreddits": {
+    "title": "热门社区",
+    "loading": "加载中...",
+    "error": "加载失败，请重试",
+    "noData": "暂无帖子",
+    "retry": "重试",
+    "refresh": "刷新"
+  },
+  "search": {
+    "placeholder": "搜索 subreddit (例如: programming, technology...)",
+    "button": "搜索",
+    "suggestions": "推荐社区",
+    "searching": "搜索中...",
+    "noResults": "未找到相关社区",
+    "error": "搜索失败，请重试",
+    "searchResults": "搜索结果"
+  },
+  "subreddit": {
+    "members": "成员",
+    "online": "在线",
+    "created": "创建于",
+    "visitReddit": "访问 Reddit",
+    "addToFavorites": "添加到收藏",
+    "removeFromFavorites": "从收藏移除",
+    "topPosts": "热门帖子",
+    "noPosts": "暂无帖子",
+    "notFound": "社区不存在",
+    "private": "私有社区",
+    "banned": "社区已被封禁"
+  },
+  "post": {
+    "author": "作者",
+    "score": "点赞",
+    "comments": "评论",
+    "posts": "帖子",
+    "readMore": "阅读更多",
+    "readLess": "收起",
+    "viewOnReddit": "在Reddit查看"
+  },
+  "reddit": {
+    "overview": {
+      "title": "Reddit 概览",
+      "subtitle": "探索多个社区的热门话题和流行讨论"
+    }
+  },
+  "calculator": {
+    "title": "计算器",
+    "history": "历史记录",
+    "clearHistory": "清除历史"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "错误",
+    "retry": "重试",
+    "back": "返回"
+  },
+  "footer": {
+    "copyright": "Reddit 热门帖子 © 2025"
+  }
+} 

@@ -1,123 +1,133 @@
-# 🔖 我的书签网站
+# Reddit Top Posts - 多列表网格布局
 
-一个使用 Vue 3 构建的现代化个人书签导航网站，具有美观的界面和实用的搜索功能。
+这是一个现代化的Reddit热门帖子展示应用，采用了类似 [TopSub.cc](https://topsub.cc/) 的多列表网格布局设计。
 
-## ✨ 功能特点
+## 🌟 特性
 
-- 🎨 **现代化设计** - 采用渐变背景和毛玻璃效果
-- 🔍 **实时搜索** - 支持按标题和描述搜索书签
-- 📱 **响应式布局** - 完美适配桌面和移动设备
-- 🏷️ **分类管理** - 书签按类别整理，便于查找
-- ⚡ **快速访问** - 点击即可在新标签页打开网站
-- 🎯 **用户友好** - 简洁直观的用户界面
+- **多列表网格布局**: 每个subreddit都有独立的列表卡片，每行最多显示3个subreddit
+- **响应式设计**: 
+  - 移动端：1列布局
+  - 平板端：2列布局  
+  - 大屏幕：3列布局（最大列数）
+- **现代化UI**: 毛玻璃效果、渐变背景、平滑动画
+- **国际化支持**: 中英文双语
+- **实时数据**: 从Reddit API获取最新热门帖子
+
+## 🎨 设计亮点
+
+### 网格布局
+- 使用CSS Grid实现响应式多列布局，每行最多3列
+- 每个subreddit卡片包含：
+  - 彩色头部显示subreddit名称和帖子数量
+  - 最多显示10个热门帖子的精简信息
+  - 点赞数、评论数、作者、发布时间等关键信息
+  - 直接跳转到Reddit的外链按钮
+
+### 视觉效果
+- 渐变背景和毛玻璃效果
+- 悬停动画和过渡效果
+- 错峰加载动画让页面更生动
+- 优化的滚动条和选择样式
+
+### 用户体验
+- 简洁的刷新按钮替代复杂的标签切换
+- 清晰的错误状态和加载状态
+- 无障碍设计，支持键盘导航
+- 更宽的卡片设计，提供更好的内容展示空间
 
 ## 🚀 快速开始
 
-### 安装依赖
-
 ```bash
+# 安装依赖
 npm install
-```
 
-### 启动开发服务器
-
-```bash
+# 启动开发服务器
 npm run dev
-```
 
-项目将在 `http://localhost:3000` 启动，浏览器会自动打开。
-
-### 构建生产版本
-
-```bash
+# 构建生产版本
 npm run build
 ```
 
-### 预览生产版本
+## 📱 支持的Subreddit
 
-```bash
-npm run preview
+当前支持以下技术相关的subreddit：
+
+- `saas` - SaaS产品和服务
+- `programming` - 编程讨论
+- `technology` - 科技新闻
+- `webdev` - Web开发
+- `javascript` - JavaScript技术
+- `startups` - 创业相关
+- `entrepreneur` - 企业家精神
+- `MachineLearning` - 机器学习
+- `artificial` - 人工智能
+- `datascience` - 数据科学
+- `Python` - Python编程
+- `reactjs` - React.js
+- `node` - Node.js
+- `frontend` - 前端开发
+- `backend` - 后端开发
+
+## 🛠 技术栈
+
+- **前端框架**: Vue 3 + Composition API
+- **状态管理**: Pinia
+- **国际化**: Vue I18n
+- **构建工具**: Vite
+- **样式**: CSS3 + CSS Grid + Flexbox
+- **API**: Reddit API (通过Supabase Edge Function)
+
+## 📦 项目结构
+
+```
+src/
+├── components/
+│   ├── SubredditGroupList.vue  # 新的网格布局组件
+│   ├── PostCard.vue           # 单个帖子卡片
+│   ├── Header.vue             # 页面头部
+│   ├── LoadingSpinner.vue     # 加载动画
+│   └── ErrorMessage.vue       # 错误提示
+├── views/
+│   └── Home.vue               # 主页面（已重构）
+├── stores/
+│   └── reddit.js              # Reddit数据状态管理
+├── locales/
+│   ├── en.json                # 英文翻译
+│   └── zh.json                # 中文翻译
+└── style.css                  # 全局样式
 ```
 
-## 📁 项目结构
+## 🎯 设计理念
 
-```
-bookmarks-website/
-├── src/
-│   ├── App.vue          # 主应用组件
-│   ├── main.js          # 应用入口文件
-│   └── style.css        # 全局样式
-├── index.html           # HTML 模板
-├── package.json         # 项目配置
-├── vite.config.js       # Vite 配置
-└── README.md           # 项目说明
-```
+参考了 TopSub.cc 的设计理念，将传统的单列表切换改为多列表并行展示：
 
-## 🎨 界面预览
+1. **信息密度优化**: 用户可以同时浏览多个subreddit的内容
+2. **减少交互成本**: 无需点击切换就能看到所有内容
+3. **视觉层次清晰**: 每个subreddit有独立的视觉容器
+4. **响应式友好**: 在不同屏幕尺寸下都有良好的展示效果
 
-- **渐变背景** - 紫蓝色渐变背景，视觉效果优雅
-- **毛玻璃卡片** - 半透明卡片设计，现代感十足
-- **悬停动效** - 鼠标悬停时的平滑动画效果
-- **搜索高亮** - 实时搜索结果过滤
+## 🚀 部署说明
 
-## 📚 书签分类
+### Cloudflare Pages 部署
 
-默认包含以下分类：
+本项目已优化支持 Cloudflare Pages 部署：
 
-- 🔍 **搜索引擎** - Google、百度、Bing
-- 💬 **社交媒体** - 微博、Twitter、知乎
-- ⚡ **开发工具** - GitHub、Stack Overflow、MDN、Vue.js
-- 🎬 **娱乐视频** - YouTube、B站、爱奇艺
-- 📰 **新闻资讯** - 新浪新闻、36氪、BBC News
-- 🛠️ **在线工具** - CodePen、Can I Use、JSON格式化
+1. **构建配置**:
+   - 构建命令: `npm run build`
+   - 构建输出目录: `dist`
 
-## 🔧 自定义配置
+2. **环境变量配置**:
+   ```
+   VITE_SUPABASE_URL=https://husdiczqouillhvovodl.supabase.co/functions/v1/clever-action
+   VITE_SUPABASE_TOKEN=your_supabase_token
+   ```
 
-你可以在 `src/App.vue` 文件中修改书签数据：
+3. **路由支持**: 
+   - 已配置 `public/_redirects` 文件支持 SPA 路由
+   - 支持直接访问 `/reddit`、`/calculator` 等路径
 
-```javascript
-const categories = ref([
-  {
-    id: 1,
-    name: '分类名称',
-    icon: '🔍',
-    bookmarks: [
-      {
-        id: 1,
-        title: '网站标题',
-        url: 'https://example.com',
-        description: '网站描述',
-        icon: 'E'
-      }
-    ]
-  }
-])
-```
+详细部署指南请参考 [DEPLOY.md](./DEPLOY.md)
 
-## 🛠️ 技术栈
+## �� 许可证
 
-- **Vue 3** - 渐进式 JavaScript 框架
-- **Vite** - 快速的前端构建工具
-- **CSS3** - 现代 CSS 特性（Grid、Flexbox、渐变、动画）
-- **ES6+** - 现代 JavaScript 语法
-
-## 📱 响应式设计
-
-- 桌面端：多列网格布局
-- 平板端：自适应列数
-- 移动端：单列布局
-
-## 🎯 使用建议
-
-1. **个性化定制** - 根据个人需求修改书签分类和网站
-2. **图标优化** - 可以使用 Emoji 或字母作为网站图标
-3. **颜色主题** - 可以在 CSS 中调整渐变色彩搭配
-4. **功能扩展** - 可以添加书签导入/导出功能
-
-## 📄 许可证
-
-MIT License
-
----
-
-**享受你的个人书签导航体验！** 🚀 
+MIT License 
