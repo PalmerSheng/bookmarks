@@ -26,7 +26,7 @@ async function translateToChineseWithAI(text: string): Promise<string> {
     console.warn('⚠️ Cloudflare AI凭据未找到，跳过翻译');
     return text; // Return original text if no credentials
   }
-  const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/meta/llama-3-8b-instruct`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/meta/llama-4-scout-17b-16e-instruct`;
   try {
     const response = await fetch(url, {
       method: 'POST',
