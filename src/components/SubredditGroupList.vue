@@ -147,13 +147,15 @@ const formatTime = (timestamp) => {
 <style scoped>
 .subreddit-groups {
   padding: 2rem 0;
+  width: 100%;
 }
 
 .groups-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+  grid-template-columns: 1fr;
   gap: 2rem;
-  max-width: 1600px;
+  max-width: 98%;
+  width: 100%;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -166,6 +168,7 @@ const formatTime = (timestamp) => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   transition: all 0.3s ease;
+  width: 100%;
 }
 
 .subreddit-group:hover {
@@ -273,9 +276,9 @@ const formatTime = (timestamp) => {
 }
 
 .post-title {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.3;
   margin: 0;
   color: #333;
   display: -webkit-box;
@@ -286,7 +289,7 @@ const formatTime = (timestamp) => {
   position: relative;
   cursor: pointer;
   flex: 0 0 auto;
-  max-height: 2.4em;
+  max-height: 2.6em;
 }
 
 .post-title:hover::after {
@@ -420,6 +423,7 @@ const formatTime = (timestamp) => {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     padding: 0 0.5rem;
+    max-width: 100%;
   }
   
   .group-header {
@@ -515,22 +519,17 @@ const formatTime = (timestamp) => {
   }
 }
 
-@media (min-width: 769px) and (max-width: 1199px) {
-  .groups-container {
-    grid-template-columns: repeat(1, 1fr);
-  }
-}
-
-@media (min-width: 1200px) and (max-width: 1599px) {
-  .groups-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (min-width: 1600px) {
   .groups-container {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 98%;
+  }
+}
+
+@media (min-width: 2400px) {
+  .groups-container {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 1800px;
+    max-width: 98%;
   }
 }
 </style> 
