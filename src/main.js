@@ -24,10 +24,21 @@ const router = createRouter({
   routes
 })
 
+// Get the saved language preference or default to Chinese
+const getInitialLocale = () => {
+  if (typeof window !== 'undefined') {
+    const savedLang = localStorage.getItem('language')
+    if (savedLang && ['en', 'zh'].includes(savedLang)) {
+      return savedLang
+    }
+  }
+  return 'zh' // Default to Chinese
+}
+
 // i18n configuration
 const i18n = createI18n({
   legacy: false,
-  locale: 'en',
+  locale: getInitialLocale(),
   fallbackLocale: 'en',
   messages: {
     en,

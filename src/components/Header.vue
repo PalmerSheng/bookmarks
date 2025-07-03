@@ -92,7 +92,7 @@ if (typeof window !== 'undefined') {
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 2rem 0;
+  padding: 1rem 0;
   position: relative;
   overflow: hidden;
 }
@@ -122,11 +122,11 @@ if (typeof window !== 'undefined') {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .logo h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   margin: 0;
   background: linear-gradient(45deg, #fff, #f0f0f0);
@@ -136,8 +136,8 @@ if (typeof window !== 'undefined') {
 }
 
 .logo p {
-  font-size: 1.1rem;
-  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+  margin: 0.25rem 0 0 0;
   opacity: 0.9;
 }
 
@@ -154,7 +154,7 @@ if (typeof window !== 'undefined') {
   background: rgba(255, 255, 255, 0.1);
   border: 2px solid rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 0.75rem 1.25rem;
+  padding: 0.5rem 1rem;
   border-radius: 25px;
   text-decoration: none;
   font-weight: 500;
@@ -188,7 +188,7 @@ if (typeof window !== 'undefined') {
   background: rgba(255, 255, 255, 0.2);
   border: 2px solid rgba(255, 255, 255, 0.3);
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 25px;
   cursor: pointer;
   font-weight: 500;
@@ -211,7 +211,7 @@ if (typeof window !== 'undefined') {
   .header-content {
     text-align: center;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
   }
   
   .navigation {
@@ -225,18 +225,22 @@ if (typeof window !== 'undefined') {
   }
   
   .logo h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
   
   .logo p {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 }
 
 @media (max-width: 640px) {
+  .header {
+    padding: 0.75rem 0;
+  }
+  
   .navigation {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
     width: 100%;
   }
   
@@ -244,10 +248,11 @@ if (typeof window !== 'undefined') {
     justify-content: center;
     width: 100%;
     max-width: 200px;
+    padding: 0.4rem 0.8rem;
   }
   
   .header-content {
-    gap: 1rem;
+    gap: 0.75rem;
   }
 }
 </style> 

@@ -12,7 +12,7 @@
     </div>
     
     <h3 class="post-title">
-      {{ currentLocale === 'zh' && post.titleZh ? post.titleZh : post.title }}
+      {{ currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title }}
     </h3>
     
     <div class="post-content" v-if="post.content">

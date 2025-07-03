@@ -66,6 +66,16 @@
     "readLess": "Read Less",
     "viewOnReddit": "View on Reddit"
   },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "minutes ago",
+    "hoursAgo": "hours ago",
+    "daysAgo": "days ago",
+    "weeksAgo": "weeks ago",
+    "monthsAgo": "months ago",
+    "yearsAgo": "years ago",
+    "lastUpdated": "Last updated"
+  },
   "reddit": {
     "overview": {
       "title": "Reddit Overview",

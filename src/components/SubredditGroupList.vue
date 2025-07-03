@@ -8,8 +8,15 @@
       >
         <div class="group-header">
           <h3 class="subreddit-title">r/{{ subreddit }}</h3>
-          <div class="post-count">
-            {{ getPostCount(subreddit) }} {{ $t('post.posts') }}
+          <div class="subreddit-meta">
+            <div class="post-count">
+              {{ getPostCount(subreddit) }} {{ $t('post.posts') }}
+            </div>
+            <div class="update-info">
+              <div v-if="getLastUpdateTime(subreddit)" class="last-updated">
+                {{ $t('time.lastUpdated') }}: {{ formatLastUpdate(subreddit) }}
+              </div>
+            </div>
           </div>
         </div>
         
@@ -24,15 +31,26 @@
             >
               <div class="post-meta">
                 <span class="score">{{ formatNumber(post.score) }}</span>
-                <span class="comments">{{ post.comment_count }}</span>
               </div>
               <div class="post-info">
-                <h4 class="post-title">
-                  {{ currentLocale === 'zh' && post.titleZh ? post.titleZh : post.title }}
+                <h4 
+                  class="post-title"
+                  :title="currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title"
+                >
+                  {{ currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title }}
                 </h4>
                 <div class="post-details">
-                  <span class="author">{{ post.author }}</span>
-                  <span class="time">{{ formatTime(post.created) }}</span>
+                  <div class="post-author-time">
+                    <span class="author" :title="post.author">{{ post.author }}</span>
+                    <span class="separator">•</span>
+                    <span class="time">{{ formatTime(post.created) }}</span>
+                  </div>
+                  <div class="post-comments">
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                    </svg>
+                    <span class="comment-count">{{ formatNumber(post.comment_count || 0) }}</span>
+                  </div>
                 </div>
               </div>
               <a 
@@ -67,6 +85,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRedditStore } from '../stores/reddit.js'
+import { formatTimeAgo, getLatestPostTime } from '../utils/timeFormatter.js'
 import LoadingSpinner from './LoadingSpinner.vue'
 
 const props = defineProps({
@@ -76,7 +95,7 @@ const props = defineProps({
   }
 })
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const currentLocale = computed(() => locale.value)
 const redditStore = useRedditStore()
 
@@ -86,6 +105,18 @@ const getSubredditPosts = (subreddit) => {
 
 const getPostCount = (subreddit) => {
   return getSubredditPosts(subreddit).length
+}
+
+const getLastUpdateTime = (subreddit) => {
+  const posts = getSubredditPosts(subreddit)
+  return getLatestPostTime(posts)
+}
+
+const formatLastUpdate = (subreddit) => {
+  const lastUpdateTime = getLastUpdateTime(subreddit)
+  if (!lastUpdateTime) return ''
+  
+  return formatTimeAgo(lastUpdateTime, currentLocale.value, t)
 }
 
 const formatNumber = (num) => {
@@ -120,15 +151,14 @@ const formatTime = (timestamp) => {
 
 .groups-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
   gap: 2rem;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
 .subreddit-group {
-
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 16px;
@@ -158,12 +188,30 @@ const formatTime = (timestamp) => {
   margin: 0;
 }
 
+.subreddit-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 .post-count {
   font-size: 0.9rem;
   opacity: 0.9;
   background: rgba(255, 255, 255, 0.2);
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
+}
+
+.update-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.last-updated {
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-bottom: 0.25rem;
 }
 
 .posts-list {
@@ -179,76 +227,165 @@ const formatTime = (timestamp) => {
 
 .post-item {
   display: flex;
-  align-items: flex-start;
-  gap: 0.1rem;
-  padding: 0.1rem;
-  border-radius: 12px;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  height: 80px;
+  position: relative;
 }
 
 .post-item:hover {
   background: rgba(255, 255, 255, 0.8);
   transform: translateX(4px);
+  z-index: 10;
 }
 
 .post-meta {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.25rem;
-  min-width: 60px;
+  min-width: 50px;
+  flex-shrink: 0;
+  padding-top: 0.1rem;
 }
 
 .score {
   font-weight: 600;
   color: #ff4500;
-  font-size: 0.9rem;
-}
-
-.comments {
   font-size: 0.8rem;
-  color: #666;
+  line-height: 1;
 }
 
 .post-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0.1rem 0;
 }
 
 .post-title {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  line-height: 1.4;
-  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+  margin: 0;
   color: #333;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  cursor: pointer;
+  flex: 0 0 auto;
+  max-height: 2.4em;
+}
+
+.post-title:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: normal;
+  word-wrap: break-word;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  display: block;
+  overflow: visible;
 }
 
 .post-details {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  font-size: 0.8rem;
-  color: #888;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.post-author-time {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .author {
   font-weight: 500;
+  font-size: 0.7rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+  line-height: 1;
+}
+
+.separator {
+  color: #666;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.time {
+  color: #666;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.post-comments {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.comment-count {
+  font-size: 0.7rem;
+  color: #667eea;
+  line-height: 1;
 }
 
 .external-link {
   color: #667eea;
   opacity: 0.7;
   transition: all 0.3s ease;
-  padding: 0.5rem;
+  padding: 0.25rem;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 0.1rem;
+}
+
+.external-link svg {
+  width: 14px;
+  height: 14px;
 }
 
 .external-link:hover {
@@ -292,6 +429,16 @@ const formatTime = (timestamp) => {
     align-items: flex-start;
   }
   
+  .subreddit-meta {
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .update-info {
+    align-items: flex-start;
+    margin-top: 0.5rem;
+  }
+  
   .subreddit-title {
     font-size: 1.1rem;
   }
@@ -302,34 +449,88 @@ const formatTime = (timestamp) => {
   }
   
   .post-item {
-    padding: 0.75rem;
-    gap: 0.75rem;
+    padding: 0.4rem;
+    gap: 0.5rem;
+    height: 70px;
   }
   
   .post-meta {
-    min-width: 50px;
+    min-width: 40px;
+    padding-top: 0.05rem;
+  }
+  
+  .post-info {
+    padding: 0.05rem 0;
+  }
+  
+  .score {
+    font-size: 0.75rem;
   }
   
   .post-title {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    -webkit-line-clamp: 2;
+    line-height: 1.1;
+    max-height: 2.2em;
+  }
+  
+  .post-title:hover::after {
+    max-width: 250px;
+    font-size: 0.8rem;
   }
   
   .post-details {
-    flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+  }
+  
+  .post-author-time {
+    gap: 0.2rem;
+  }
+  
+  .author {
+    font-size: 0.65rem;
+    max-width: 60px;
+  }
+  
+  .separator {
+    font-size: 0.6rem;
+  }
+  
+  .time {
+    font-size: 0.6rem;
+  }
+  
+  .comment-count {
+    font-size: 0.65rem;
+  }
+  
+  .external-link {
+    padding: 0.2rem;
+  }
+  
+  .external-link svg {
+    width: 12px;
+    height: 12px;
   }
 }
 
-@media (min-width: 769px) and (max-width: 1399px) {
+@media (min-width: 769px) and (max-width: 1199px) {
+  .groups-container {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+
+@media (min-width: 1200px) and (max-width: 1599px) {
   .groups-container {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1600px) {
   .groups-container {
     grid-template-columns: repeat(3, 1fr);
-    max-width: 1500px;
+    max-width: 1800px;
   }
 }
 </style> 

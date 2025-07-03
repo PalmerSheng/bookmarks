@@ -24,6 +24,17 @@
           </svg>
           {{ $t('search.button') }}
         </button>
+        <button 
+          @click="handleRefresh" 
+          class="refresh-btn"
+          :disabled="isRefreshing"
+        >
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" :class="{ 'spinning': isRefreshing }">
+            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/>
+            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/>
+          </svg>
+          {{ $t('subreddits.refresh') }}
+        </button>
       </div>
       
       <div v-if="searchSuggestions.length > 0" class="search-suggestions">
@@ -49,6 +60,7 @@ const redditStore = useRedditStore()
 
 const searchQuery = ref('')
 const searchSuggestions = ref([])
+const isRefreshing = ref(false)
 
 // 常见的subreddit建议
 const popularSubreddits = [
@@ -60,7 +72,7 @@ const popularSubreddits = [
   'movies', 'television', 'books', 'music', 'art'
 ]
 
-const emit = defineEmits(['search'])
+const emit = defineEmits(['search', 'refresh'])
 
 const handleInput = () => {
   if (searchQuery.value.trim()) {
@@ -84,6 +96,17 @@ const handleSearch = async () => {
     emit('search', query)
   } catch (error) {
     console.error('Search failed:', error)
+  }
+}
+
+const handleRefresh = async () => {
+  isRefreshing.value = true
+  try {
+    emit('refresh')
+  } finally {
+    setTimeout(() => {
+      isRefreshing.value = false
+    }, 1000)
   }
 }
 
@@ -130,7 +153,7 @@ const selectSuggestion = (suggestion) => {
   color: rgba(44, 62, 80, 0.6);
 }
 
-.search-btn {
+.search-btn, .refresh-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
@@ -146,12 +169,24 @@ const selectSuggestion = (suggestion) => {
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
 }
 
-.search-btn:hover:not(:disabled) {
+.refresh-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
+}
+
+.search-btn:hover:not(:disabled), .refresh-btn:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+
+.search-btn:hover:not(:disabled) {
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.search-btn:disabled {
+.refresh-btn:hover:not(:disabled) {
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+}
+
+.search-btn:disabled, .refresh-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
@@ -205,17 +240,17 @@ const selectSuggestion = (suggestion) => {
 @media (max-width: 768px) {
   .search-input-wrapper {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
+  }
+  
+  .search-btn, .refresh-btn {
+    padding: 0.65rem 1rem;
+    justify-content: center;
+    width: 100%;
   }
   
   .search-input {
     padding: 0.65rem 1rem;
-    font-size: 0.9rem;
-  }
-  
-  .search-btn {
-    padding: 0.65rem 1rem;
-    justify-content: center;
   }
 }
 </style> 

@@ -66,6 +66,16 @@
     "readLess": "收起",
     "viewOnReddit": "在Reddit查看"
   },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "分钟前",
+    "hoursAgo": "小时前",
+    "daysAgo": "天前",
+    "weeksAgo": "周前",
+    "monthsAgo": "个月前",
+    "yearsAgo": "年前",
+    "lastUpdated": "最后更新"
+  },
   "reddit": {
     "overview": {
       "title": "Reddit 概览",

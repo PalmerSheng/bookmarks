@@ -47,7 +47,17 @@ export const useRedditStore = defineStore('reddit', () => {
 
   // Getters
   const getPostsBySubreddit = computed(() => (subreddit) => {
-    return posts.value[subreddit]?.hot_posts || []
+    // First check if we have posts in the main posts object
+    if (posts.value[subreddit]?.hot_posts) {
+      return posts.value[subreddit].hot_posts
+    }
+    
+    // If this is a search result, check searchResult
+    if (searchResult.value && searchResult.value.about?.display_name === subreddit) {
+      return searchResult.value.posts || []
+    }
+    
+    return []
   })
 
   const isLoading = computed(() => loading.value)
@@ -132,7 +142,7 @@ export const useRedditStore = defineStore('reddit', () => {
     searchResult.value = null
 
     try {
-      const data = await callSupabaseFunction([subredditName], limit, true)
+      const data = await callSupabaseFunction([subredditName], limit, false)
       
       const subredditData = data[subredditName]
       
@@ -144,10 +154,11 @@ export const useRedditStore = defineStore('reddit', () => {
         throw new Error(subredditData.error)
       }
 
-      // Format data to match previous structure
+      // Format data to match previous structure with new title_zh support
       const formattedPosts = subredditData.hot_posts.map(post => ({
         id: post.id,
         title: post.title,
+        titleZh: post.title_zh, // Add Chinese title support
         author: post.author,
         score: post.score,
         num_comments: post.comment_count,
@@ -160,13 +171,16 @@ export const useRedditStore = defineStore('reddit', () => {
         preview: null,
         is_video: false,
         media: null,
-        over_18: false
+        over_18: false,
+        comment_count: post.comment_count, // Add for consistency
+        created: post.created // Keep original timestamp for compatibility
       }))
 
       searchResult.value = {
         about: {
           display_name: subredditData.display_name,
           title: subredditData.title,
+          titleZh: subredditData.title_zh, // Add Chinese title support
           public_description: subredditData.public_description,
           description: subredditData.description,
           subscribers: subredditData.subscribers,
@@ -177,6 +191,16 @@ export const useRedditStore = defineStore('reddit', () => {
           banner_img: subredditData.banner_img
         },
         posts: formattedPosts
+      }
+
+      // Also store in the main posts object for consistency with getPostsBySubreddit
+      posts.value[subredditName] = {
+        hot_posts: formattedPosts,
+        display_name: subredditData.display_name,
+        title: subredditData.title,
+        title_zh: subredditData.title_zh,
+        subscribers: subredditData.subscribers,
+        active_users: subredditData.active_users
       }
 
       console.log('✅ Subreddit search completed successfully')

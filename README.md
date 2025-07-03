@@ -1,133 +1,214 @@
-# Reddit Top Posts - 多列表网格布局
+# Reddit Subreddit Data Fetcher with AI Translation
 
-这是一个现代化的Reddit热门帖子展示应用，采用了类似 [TopSub.cc](https://topsub.cc/) 的多列表网格布局设计。
+This project provides a Supabase Edge Function that fetches Reddit subreddit data using OAuth authentication and translates content to Chinese using Cloudflare AI.
 
-## 🌟 特性
+## Features
 
-- **多列表网格布局**: 每个subreddit都有独立的列表卡片，每行最多显示3个subreddit
-- **响应式设计**: 
-  - 移动端：1列布局
-  - 平板端：2列布局  
-  - 大屏幕：3列布局（最大列数）
-- **现代化UI**: 毛玻璃效果、渐变背景、平滑动画
-- **国际化支持**: 中英文双语
-- **实时数据**: 从Reddit API获取最新热门帖子
+- 🔐 **OAuth Authentication**: Secure Reddit API access using OAuth 2.0
+- 🌐 **AI Translation**: Automatic translation of descriptions and post titles to Chinese
+- 💾 **Database Caching**: Intelligent caching with 1-hour refresh intervals
+- 🚀 **Parallel Processing**: Concurrent processing of multiple subreddits
+- 🔄 **CORS Support**: Full cross-origin resource sharing support
+- 📊 **Rate Limiting**: Built-in rate limiting for API requests
 
-## 🎨 设计亮点
+## Database Schema
 
-### 网格布局
-- 使用CSS Grid实现响应式多列布局，每行最多3列
-- 每个subreddit卡片包含：
-  - 彩色头部显示subreddit名称和帖子数量
-  - 最多显示10个热门帖子的精简信息
-  - 点赞数、评论数、作者、发布时间等关键信息
-  - 直接跳转到Reddit的外链按钮
+The `subreddit_data` table includes the following fields:
 
-### 视觉效果
-- 渐变背景和毛玻璃效果
-- 悬停动画和过渡效果
-- 错峰加载动画让页面更生动
-- 优化的滚动条和选择样式
+```sql
+CREATE TABLE public.subreddit_data (
+    id text NOT NULL,
+    subreddit text NOT NULL,
+    display_name text NULL,
+    title text NULL,
+    description text NULL,
+    description_zh text NULL,  -- Chinese translation
+    subscribers integer NULL DEFAULT 0,
+    active_users integer NULL DEFAULT 0,
+    created_utc bigint NULL,
+    subreddit_type text NULL,
+    public_description text NULL,
+    icon_img text NULL,
+    banner_img text NULL,
+    hot_posts jsonb NULL,      -- Includes title_zh for each post
+    last_updated timestamp with time zone NULL DEFAULT now(),
+    created_at timestamp with time zone NULL DEFAULT now(),
+    CONSTRAINT subreddit_data_pkey PRIMARY KEY (subreddit)
+);
+```
 
-### 用户体验
-- 简洁的刷新按钮替代复杂的标签切换
-- 清晰的错误状态和加载状态
-- 无障碍设计，支持键盘导航
-- 更宽的卡片设计，提供更好的内容展示空间
+## Environment Variables
 
-## 🚀 快速开始
+Set up the following environment variables in your Supabase project:
+
+### Reddit API Credentials
+```bash
+REDDIT_APP_ID=your_reddit_app_id
+REDDIT_APP_SECRET=your_reddit_app_secret
+```
+
+### Cloudflare AI API Credentials
+```bash
+CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
+CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+```
+
+### Supabase Credentials (automatically provided)
+```bash
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+## API Usage
+
+### POST Request
 
 ```bash
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
+curl -X POST https://your-project.supabase.co/functions/v1/clever-action \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subreddits": ["programming", "MachineLearning", "webdev"],
+    "limit": 10,
+    "force_refresh": false
+  }'
 ```
 
-## 📱 支持的Subreddit
+### Request Parameters
 
-当前支持以下技术相关的subreddit：
+- `subreddits` (required): Array of subreddit names to fetch
+- `limit` (optional): Number of hot posts to fetch per subreddit (1-25, default: 10)
+- `force_refresh` (optional): Force refresh data ignoring cache (default: false)
 
-- `saas` - SaaS产品和服务
-- `programming` - 编程讨论
-- `technology` - 科技新闻
-- `webdev` - Web开发
-- `javascript` - JavaScript技术
-- `startups` - 创业相关
-- `entrepreneur` - 企业家精神
-- `MachineLearning` - 机器学习
-- `artificial` - 人工智能
-- `datascience` - 数据科学
-- `Python` - Python编程
-- `reactjs` - React.js
-- `node` - Node.js
-- `frontend` - 前端开发
-- `backend` - 后端开发
+### Response Format
 
-## 🛠 技术栈
-
-- **前端框架**: Vue 3 + Composition API
-- **状态管理**: Pinia
-- **国际化**: Vue I18n
-- **构建工具**: Vite
-- **样式**: CSS3 + CSS Grid + Flexbox
-- **API**: Reddit API (通过Supabase Edge Function)
-
-## 📦 项目结构
-
+```json
+{
+  "success": true,
+  "data": {
+    "programming": {
+      "subreddit": "programming",
+      "display_name": "programming",
+      "title": "Computer Programming",
+      "description": "Computer Programming",
+      "description_zh": "计算机编程",
+      "subscribers": 4500000,
+      "active_users": 8500,
+      "hot_posts": [
+        {
+          "id": "abc123",
+          "title": "Best practices for clean code",
+          "title_zh": "干净代码的最佳实践",
+          "url": "https://example.com",
+          "score": 1500,
+          "author": "developer",
+          "content": "...",
+          "created": 1634567890000,
+          "subreddit": "programming",
+          "comment_count": 250,
+          "upvote_ratio": 0.95,
+          "permalink": "https://reddit.com/r/programming/comments/..."
+        }
+      ],
+      "last_updated": "2024-01-01T12:00:00.000Z",
+      "source": "fresh"
+    }
+  },
+  "meta": {
+    "limit": 10,
+    "force_refresh": false,
+    "subreddits_requested": 1,
+    "timestamp": "2024-01-01T12:00:00.000Z",
+    "cors_enabled": true
+  }
+}
 ```
-src/
-├── components/
-│   ├── SubredditGroupList.vue  # 新的网格布局组件
-│   ├── PostCard.vue           # 单个帖子卡片
-│   ├── Header.vue             # 页面头部
-│   ├── LoadingSpinner.vue     # 加载动画
-│   └── ErrorMessage.vue       # 错误提示
-├── views/
-│   └── Home.vue               # 主页面（已重构）
-├── stores/
-│   └── reddit.js              # Reddit数据状态管理
-├── locales/
-│   ├── en.json                # 英文翻译
-│   └── zh.json                # 中文翻译
-└── style.css                  # 全局样式
-```
 
-## 🎯 设计理念
+## Translation Features
 
-参考了 TopSub.cc 的设计理念，将传统的单列表切换改为多列表并行展示：
+### Subreddit Description Translation
+- Automatically translates subreddit descriptions to Chinese
+- Stored in the `description_zh` field
+- Uses Cloudflare AI's Llama-3-8b-instruct model
 
-1. **信息密度优化**: 用户可以同时浏览多个subreddit的内容
-2. **减少交互成本**: 无需点击切换就能看到所有内容
-3. **视觉层次清晰**: 每个subreddit有独立的视觉容器
-4. **响应式友好**: 在不同屏幕尺寸下都有良好的展示效果
+### Post Title Translation
+- Translates hot post titles to Chinese
+- Stored as `title_zh` within the `hot_posts` JSON array
+- Batch processing with rate limiting (5 concurrent translations)
 
-## 🚀 部署说明
+### Translation Configuration
+- **Model**: `@cf/meta/llama-3-8b-instruct`
+- **Rate Limiting**: 5 concurrent translations per batch
+- **Delay**: 1 second between batches
+- **Fallback**: Returns original text if translation fails
 
-### Cloudflare Pages 部署
+## Caching Strategy
 
-本项目已优化支持 Cloudflare Pages 部署：
+- **Cache Duration**: 1 hour per subreddit
+- **Cache Key**: Subreddit name (lowercase)
+- **Force Refresh**: Use `force_refresh: true` to bypass cache
+- **Auto-refresh**: Data older than 1 hour is automatically refreshed
 
-1. **构建配置**:
-   - 构建命令: `npm run build`
-   - 构建输出目录: `dist`
+## Error Handling
 
-2. **环境变量配置**:
+The function includes comprehensive error handling:
+
+- **Reddit API Errors**: Graceful fallback with detailed error messages
+- **Translation Errors**: Falls back to original text
+- **Database Errors**: Detailed error reporting
+- **Rate Limiting**: Built-in delays and retry logic
+
+## Setup Instructions
+
+1. **Create Reddit App**:
+   - Go to https://www.reddit.com/prefs/apps
+   - Create a new application (script type)
+   - Note the client ID and secret
+
+2. **Setup Cloudflare AI**:
+   - Get your Cloudflare Account ID
+   - Create an API token with AI permissions
+
+3. **Deploy to Supabase**:
+   ```bash
+   supabase functions deploy clever-action
    ```
-   VITE_SUPABASE_URL=https://husdiczqouillhvovodl.supabase.co/functions/v1/clever-action
-   VITE_SUPABASE_TOKEN=your_supabase_token
+
+4. **Set Environment Variables**:
+   ```bash
+   supabase secrets set REDDIT_APP_ID=your_app_id
+   supabase secrets set REDDIT_APP_SECRET=your_app_secret
+   supabase secrets set CLOUDFLARE_ACCOUNT_ID=your_account_id
+   supabase secrets set CLOUDFLARE_API_TOKEN=your_token
    ```
 
-3. **路由支持**: 
-   - 已配置 `public/_redirects` 文件支持 SPA 路由
-   - 支持直接访问 `/reddit`、`/calculator` 等路径
+5. **Run Database Migration**:
+   ```bash
+   supabase db reset
+   ```
 
-详细部署指南请参考 [DEPLOY.md](./DEPLOY.md)
+## Performance Considerations
 
-## �� 许可证
+- **Parallel Processing**: Multiple subreddits processed concurrently
+- **Translation Batching**: Titles translated in batches of 5
+- **Caching**: 1-hour cache reduces API calls
+- **Rate Limiting**: Respects Reddit and Cloudflare rate limits
 
-MIT License 
+## Monitoring
+
+Monitor the function through:
+- Supabase Dashboard logs
+- Database query performance
+- Translation success rates
+- API response times
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details 

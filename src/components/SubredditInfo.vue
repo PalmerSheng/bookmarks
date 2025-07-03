@@ -31,7 +31,7 @@
         
         <div class="subreddit-meta">
           <h2 class="subreddit-name">r/{{ subredditData.display_name }}</h2>
-          <p v-if="subredditData.title" class="subreddit-title">{{ subredditData.title }}</p>
+          <p v-if="displayTitle" class="subreddit-title">{{ displayTitle }}</p>
           <p v-if="subredditData.public_description" class="subreddit-description">
             {{ subredditData.public_description }}
           </p>
@@ -99,6 +99,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRedditStore } from '../stores/reddit.js'
 import PostCard from './PostCard.vue'
 
@@ -109,12 +110,22 @@ const props = defineProps({
   }
 })
 
+const { locale } = useI18n()
 const redditStore = useRedditStore()
 const isFavorite = ref(false)
 
 // 计算属性
 const subredditData = computed(() => redditStore.searchResult?.about)
 const posts = computed(() => redditStore.searchResult?.posts || [])
+const currentLocale = computed(() => locale.value)
+
+// 计算显示的标题（中英文切换）
+const displayTitle = computed(() => {
+  if (!subredditData.value) return ''
+  return currentLocale.value === 'zh' && (subredditData.value.titleZh || subredditData.value.title_zh)
+    ? (subredditData.value.titleZh || subredditData.value.title_zh)
+    : subredditData.value.title
+})
 
 // 格式化数字
 const formatNumber = (num) => {
