@@ -1,8 +1,21 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+// Type definitions
+interface RequestBody {
+  subreddits?: string[];
+  limit?: number;
+  force_refresh?: boolean;
+}
+
+interface SubredditResult {
+  subreddit: string;
+  data: any;
+}
+
 // Function to translate text using Cloudflare AI
-async function translateToChineseWithAI(text) {
+async function translateToChineseWithAI(text: string): Promise<string> {
   if (!text || text.trim() === '') {
     return '';
   }
@@ -26,7 +39,7 @@ async function translateToChineseWithAI(text) {
         messages: [
           {
             role: "system",
-            content: "You are a friendly translator assistant, translate the given English text to Chinese. Only return the translated Chinese text without any additional explanations or formatting."
+            content: "You are a friendly translator assistant. Translate the given English text into Simplified Chinese. Only return the translated text in Simplified Chinese without any additional explanations or formatting."
           },
           {
             role: "user",
@@ -54,9 +67,9 @@ async function translateToChineseWithAI(text) {
   }
 }
 // Function to translate multiple texts concurrently with rate limiting
-async function translateTexts(texts) {
+async function translateTexts(texts: string[]): Promise<string[]> {
   const batchSize = 5; // Process 5 translations at a time to avoid rate limits
-  const results = [];
+  const results: string[] = [];
   for(let i = 0; i < texts.length; i += batchSize){
     const batch = texts.slice(i, i + batchSize);
     const batchPromises = batch.map((text)=>translateToChineseWithAI(text));
@@ -242,6 +255,56 @@ async function getSubredditFromDatabase(subredditName) {
   }
   return data;
 }
+// Function to get default subreddits from sys_config table
+async function getDefaultSubreddits() {
+  console.log('📋 获取默认subreddits配置...');
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase.from('sys_config').select('data').eq('biz_code', 'reddit_default_subreddits').single();
+  if (error) {
+    console.error('❌ 获取默认subreddits配置失败:', error);
+    // Return fallback default subreddits if database query fails
+    return [
+      'saas',
+      'technology'
+    ];
+  }
+  console.log('🔍 获取默认subreddits配置:', data);
+  
+  if (!data || !data.data) {
+    console.warn('⚠️ sys_config中未找到数据，使用备用默认值');
+    return [
+      'saas',
+      'technology'
+    ];
+  }
+
+  try {
+    // Parse the JSON string from the database
+    let configData;
+    if (typeof data.data === 'string') {
+      configData = JSON.parse(data.data);
+    } else {
+      configData = data.data;
+    }
+    
+    if (!configData || !configData.subreddits || !Array.isArray(configData.subreddits)) {
+      console.warn('⚠️ 解析后的配置格式不正确，使用备用默认值');
+      return [
+        'saas',
+        'technology'
+      ];
+    }
+    
+    console.log('✅ 成功获取默认subreddits配置:', configData.subreddits);
+    return configData.subreddits;
+  } catch (parseError) {
+    console.error('❌ 解析默认subreddits配置失败:', parseError);
+    return [
+      'saas',
+      'technology'
+    ];
+  }
+}
 async function saveSubredditToDatabase(subredditInfo, hotPosts) {
   const supabase = createSupabaseClient();
   // Translate subreddit description to Chinese
@@ -282,10 +345,10 @@ async function processSubreddit(subredditName, limit = 10, forceRefresh = false)
     if (!forceRefresh) {
       const cachedData = await getSubredditFromDatabase(cleanSubredditName);
       if (cachedData) {
-        // Check if data is recent (less than 1 hour old)
+        // Check if data is recent (less than 12 hours old)
         const lastUpdated = new Date(cachedData.last_updated);
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-        if (lastUpdated > oneHourAgo) {
+        const oneDayAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+        if (lastUpdated > oneDayAgo) {
           console.log(`📦 使用缓存数据 r/${cleanSubredditName} (上次更新: ${lastUpdated.toISOString()})`);
           return {
             ...cachedData,
@@ -317,9 +380,16 @@ async function processSubreddit(subredditName, limit = 10, forceRefresh = false)
   }
 }
 // Request validation
-function validateRequest(body) {
-  if (!body.subreddits || !Array.isArray(body.subreddits) || body.subreddits.length === 0) {
-    throw new Error('subreddits array is required and must contain at least one subreddit name');
+async function validateRequest(body: RequestBody) {
+  let subreddits = body.subreddits;
+  // Check if subreddits is empty, null, undefined, or not an array
+  if (!subreddits || !Array.isArray(subreddits) || subreddits.length === 0) {
+    console.log('📋 subreddits为空或未提供，从数据库获取默认配置...');
+    subreddits = await getDefaultSubreddits();
+  }
+  // Validate that we have at least one subreddit after getting defaults
+  if (!Array.isArray(subreddits) || subreddits.length === 0) {
+    throw new Error('No subreddits available - neither provided nor found in default configuration');
   }
   const limit = body.limit || 10;
   if (limit < 1 || limit > 25) {
@@ -328,7 +398,7 @@ function validateRequest(body) {
   const forceRefresh = body.force_refresh === true;
   console.log("raw:" + body.force_refresh + " forceRefresh" + forceRefresh);
   return {
-    subreddits: body.subreddits,
+    subreddits: subreddits,
     limit,
     forceRefresh
   };
@@ -397,6 +467,11 @@ Deno.serve(async (req)=>{
           ],
           limit: 10,
           force_refresh: false
+        },
+        notes: {
+          subreddits: '可选 - 如果为空或未提供，将从sys_config表中获取默认配置 (biz_code: reddit_default_subreddits)',
+          limit: '可选 - 每个subreddit返回的帖子数量 (1-25，默认10)',
+          force_refresh: '可选 - 是否强制刷新数据，忽略缓存 (默认false)'
         }
       },
       timestamp: new Date().toISOString()
@@ -420,21 +495,23 @@ Deno.serve(async (req)=>{
     // Parse request body with error handling
     console.log('📥 解析请求体...');
     console.log('🔍 请求内容类型:', req.headers.get('content-type'));
-    let body;
+    let body: RequestBody = {};
     try {
       const textBody = await req.text();
       console.log('📝 原始请求体长度:', textBody.length);
       console.log('📝 原始请求体内容:', textBody.substring(0, 200) + (textBody.length > 200 ? '...' : ''));
-      if (!textBody.trim()) {
-        throw new Error('Request body is empty');
+      if (textBody.trim()) {
+        body = JSON.parse(textBody) as RequestBody;
+        console.log('✅ 请求体解析成功:', {
+          subreddits: body.subreddits,
+          limit: body.limit,
+          force_refresh: body.force_refresh,
+          keys: Object.keys(body)
+        });
+      } else {
+        console.log('📝 请求体为空，将使用默认配置');
+        body = {}; // Empty body will trigger default subreddits loading
       }
-      body = JSON.parse(textBody);
-      console.log('✅ 请求体解析成功:', {
-        subreddits: body.subreddits,
-        limit: body.limit,
-        force_refresh: body.force_refresh,
-        keys: Object.keys(body)
-      });
     } catch (parseError) {
       console.error('❌ 请求体解析失败:', parseError);
       return createCorsResponse({
@@ -446,46 +523,78 @@ Deno.serve(async (req)=>{
     // Validate input
     console.log('🔍 开始验证请求参数...');
     try {
-      const { subreddits, limit, forceRefresh } = validateRequest(body);
+      const { subreddits, limit, forceRefresh } = await validateRequest(body);
       console.log('✅ 请求参数验证通过:', {
         subreddits,
         limit,
         forceRefresh
       });
       // Process all subreddits
-      const results = {};
       console.log(`🔄 并行处理 ${subreddits.length} 个subreddits...`);
-      const promises = subreddits.map(async (subreddit)=>{
+      
+      // Create promises array while maintaining order
+      const promises = subreddits.map(async (subreddit, index) => {
         try {
           const data = await processSubreddit(subreddit, limit, forceRefresh);
-          results[subreddit] = data;
           console.log(`✅ r/${subreddit} 处理完成 (${data.source})`);
+          return { index, subreddit, data, success: true };
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-          results[subreddit] = {
-            error: errorMessage
-          };
           console.error(`❌ r/${subreddit} 处理失败:`, errorMessage);
+          return { 
+            index, 
+            subreddit, 
+            data: { error: errorMessage }, 
+            success: false 
+          };
         }
       });
-      await Promise.allSettled(promises);
+      
+      const settledResults = await Promise.allSettled(promises);
+      
+      // Process results and maintain order
+      const orderedResults: SubredditResult[] = new Array(subreddits.length);
+      let successCount = 0;
+      let errorCount = 0;
+      
+      settledResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          const { subreddit, data, success } = result.value;
+          orderedResults[index] = { subreddit, data };
+          if (success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } else {
+          // This should rarely happen as we're handling errors in the map function
+          const subreddit = subreddits[index];
+          console.error(`❌ r/${subreddit} Promise被拒绝:`, result.reason);
+          orderedResults[index] = { 
+            subreddit, 
+            data: { error: 'Promise rejected' } 
+          };
+          errorCount++;
+        }
+      });
+      
       console.log('🎉 所有subreddits处理完成');
-      // Fix TypeScript errors by properly typing the results
-      const successCount = Object.values(results).filter((result)=>!result.error).length;
-      const errorCount = Object.values(results).filter((result)=>result.error).length;
       console.log('📊 处理结果统计:', {
         总数: subreddits.length,
         成功: successCount,
         失败: errorCount,
         成功率: `${(successCount / subreddits.length * 100).toFixed(1)}%`
       });
+      
       const response = {
         success: true,
-        data: results,
+        data: orderedResults,
         meta: {
           limit,
           force_refresh: forceRefresh,
           subreddits_requested: subreddits.length,
+          subreddits_used: subreddits,
+          used_default_subreddits: !body.subreddits || !Array.isArray(body.subreddits) || body.subreddits.length === 0,
           timestamp: new Date().toISOString(),
           cors_enabled: true
         }

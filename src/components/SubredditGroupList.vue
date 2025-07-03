@@ -9,9 +9,9 @@
         <div class="group-header">
           <h3 class="subreddit-title">r/{{ subreddit }}</h3>
           <div class="subreddit-meta">
-            <div class="post-count">
+            <!-- <div class="post-count">
               {{ getPostCount(subreddit) }} {{ $t('post.posts') }}
-            </div>
+            </div> -->
             <div class="update-info">
               <div v-if="getLastUpdateTime(subreddit)" class="last-updated">
                 {{ $t('time.lastUpdated') }}: {{ formatLastUpdate(subreddit) }}

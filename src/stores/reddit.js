@@ -60,6 +60,11 @@ export const useRedditStore = defineStore('reddit', () => {
     return []
   })
 
+  // 新增：动态获取当前可用的 subreddit 列表
+  const availableSubreddits = computed(() => {
+    return Object.keys(posts.value || {})
+  })
+
   const isLoading = computed(() => loading.value)
   const hasError = computed(() => error.value !== null)
   const hasSearchError = computed(() => searchError.value !== null)
@@ -100,11 +105,16 @@ export const useRedditStore = defineStore('reddit', () => {
   }
 
   // 统一的API调用函数 - 现在不需要区分环境
-  const callSupabaseFunction = async (subreddits, limit = 10, forceRefresh = false) => {
+  const callSupabaseFunction = async (subreddits, limit = 10, forceRefresh = false, action = 'fetch') => {
     const requestBody = {
       subreddits: subreddits,
       limit: limit,
       force_refresh: forceRefresh
+    }
+
+    // 如果是清除缓存操作且subreddits为空数组，使用clear_action
+    if (action === 'clear' && Array.isArray(subreddits) && subreddits.length === 0) {
+      requestBody.action = 'clear_action'
     }
 
     console.log('🚀 Making API request:', {
@@ -112,24 +122,86 @@ export const useRedditStore = defineStore('reddit', () => {
       url: SUPABASE_FUNCTION_URL,
       subreddits,
       limit,
-      forceRefresh
+      forceRefresh,
+      action: requestBody.action || 'fetch'
     })
 
     return await makeApiRequest(requestBody)
   }
 
   // Actions
-  const fetchPosts = async (subreddits = ['saas', 'programming', 'technology', 'webdev', 'javascript'], limit = 10, forceRefresh = false) => {
+  const fetchPosts = async (subreddits = [], limit = 10, forceRefresh = false) => {
     loading.value = true
     error.value = null
 
     try {
-      const data = await callSupabaseFunction(subreddits, limit, forceRefresh)
-      posts.value = data
-      console.log('✅ Posts fetched successfully')
+      const response = await callSupabaseFunction(subreddits, limit, forceRefresh, 'fetch')
+      
+      // Convert array response to object format expected by the UI
+      // API returns: { success: true, data: [{ subreddit: 'name', data: {...} }] }
+      // We need: { 'subreddit1': {...}, 'subreddit2': {...} }
+      const convertedData = {}
+      if (Array.isArray(response)) {
+        // Handle array response format
+        response.forEach(item => {
+          if (item.subreddit && item.data && !item.data.error) {
+            convertedData[item.subreddit] = item.data
+          }
+        })
+      } else {
+        // Handle direct object format (backward compatibility)
+        Object.assign(convertedData, response)
+      }
+      
+      posts.value = convertedData
+      console.log('✅ Posts fetched successfully:', {
+        subredditsCount: Object.keys(convertedData).length,
+        subreddits: Object.keys(convertedData)
+      })
     } catch (err) {
       error.value = err.message || 'Failed to fetch posts'
       console.error('Error fetching posts:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 新增：清除缓存函数
+  const clearCache = async () => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const response = await callSupabaseFunction([], 10, false, 'clear')
+      console.log('✅ Cache cleared successfully')
+      
+      // Convert array response to object format expected by the UI
+      const convertedData = {}
+      if (Array.isArray(response)) {
+        // Handle array response format
+        response.forEach(item => {
+          if (item.subreddit && item.data && !item.data.error) {
+            convertedData[item.subreddit] = item.data
+          }
+        })
+      } else if (response && typeof response === 'object') {
+        // Handle direct object format (backward compatibility)
+        Object.assign(convertedData, response)
+      }
+      
+      // 如果返回了数据，则更新到页面状态中
+      if (Object.keys(convertedData).length > 0) {
+        posts.value = convertedData
+        console.log('📊 Updated posts with returned data:', Object.keys(convertedData))
+      } else {
+        // 如果没有返回数据，则清除本地状态
+        posts.value = {}
+        searchResult.value = null
+        console.log('🧹 Cleared local state as no data returned')
+      }
+    } catch (err) {
+      error.value = err.message || 'Failed to clear cache'
+      console.error('Error clearing cache:', err)
     } finally {
       loading.value = false
     }
@@ -142,9 +214,19 @@ export const useRedditStore = defineStore('reddit', () => {
     searchResult.value = null
 
     try {
-      const data = await callSupabaseFunction([subredditName], limit, false)
+      const response = await callSupabaseFunction([subredditName], limit, false, 'fetch')
       
-      const subredditData = data[subredditName]
+      // Handle array response format
+      let subredditData = null
+      if (Array.isArray(response)) {
+        const found = response.find(item => item.subreddit === subredditName.toLowerCase())
+        if (found && found.data && !found.data.error) {
+          subredditData = found.data
+        }
+      } else if (response && response[subredditName]) {
+        // Handle direct object format (backward compatibility)
+        subredditData = response[subredditName]
+      }
       
       if (!subredditData) {
         throw new Error(`No data found for r/${subredditName}`)
@@ -243,6 +325,7 @@ export const useRedditStore = defineStore('reddit', () => {
     searchError,
     // Getters
     getPostsBySubreddit,
+    availableSubreddits,
     isLoading,
     hasError,
     hasSearchError,
@@ -251,6 +334,7 @@ export const useRedditStore = defineStore('reddit', () => {
     searchSubreddit,
     clearError,
     clearSearchError,
-    clearSearchResult
+    clearSearchResult,
+    clearCache
   }
 })

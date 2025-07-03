@@ -65,26 +65,25 @@ import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 const redditStore = useRedditStore()
 
-const subreddits = ref([
-  'saas', 
-  'programming', 
-  'technology', 
-  'webdev', 
-  'javascript', 
-  'Python',
-  'node',
-  'frontend',
-  'backend',
-  'startups',
-  'entrepreneur',
-  'MachineLearning'
+// 使用动态的 subreddits 列表，支持 clearCache 返回的数据
+const staticSubreddits = ref([
+  
 ])
+
+// 计算当前要显示的 subreddits：优先使用静态列表，如果为空则使用动态列表
+const subreddits = computed(() => {
+  if (staticSubreddits.value.length > 0) {
+    return staticSubreddits.value
+  }
+  // 如果没有配置静态 subreddits，使用从 API 返回的动态列表
+  return redditStore.availableSubreddits
+})
 
 const currentSearchQuery = ref('')
 const showSearchResult = computed(() => !!redditStore.searchResult || redditStore.isSearching || redditStore.hasSearchError)
 
 const loadPosts = async () => {
-  await redditStore.fetchPosts(subreddits.value, 10, false)
+  await redditStore.fetchPosts(staticSubreddits.value, 10, false)
 }
 
 const handleSearch = (query) => {
