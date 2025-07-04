@@ -56,6 +56,7 @@ export const formatTimeAgo = (timestamp, locale = 'en', t) => {
 /**
  * 获取最新帖子的时间戳，用于显示 subreddit 的最后更新时间
  * Get the latest post timestamp to show subreddit last update time
+ * @deprecated Use getLastUpdateTime from subreddit data instead for better accuracy
  */
 export const getLatestPostTime = (posts) => {
   if (!posts || posts.length === 0) return null
@@ -63,6 +64,27 @@ export const getLatestPostTime = (posts) => {
   // 找到最新的帖子时间戳
   const latestTimestamp = Math.max(...posts.map(post => post.created || 0))
   return latestTimestamp > 0 ? latestTimestamp : null
+}
+
+/**
+ * 获取 subreddit 的最后更新时间，优先使用 last_updated 字段
+ * Get subreddit last update time, prioritize last_updated field
+ */
+export const getSubredditLastUpdateTime = (subredditData) => {
+  if (!subredditData) return null
+  
+  // 优先使用 last_updated 字段
+  if (subredditData.last_updated) {
+    // Convert ISO 8601 format (2025-07-03T15:47:27.601+00:00) to timestamp
+    return new Date(subredditData.last_updated).getTime()
+  }
+  
+  // 备用方案：使用帖子的创建时间
+  if (subredditData.hot_posts && subredditData.hot_posts.length > 0) {
+    return getLatestPostTime(subredditData.hot_posts)
+  }
+  
+  return null
 }
 
 /**

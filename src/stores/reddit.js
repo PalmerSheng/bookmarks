@@ -145,7 +145,10 @@ export const useRedditStore = defineStore('reddit', () => {
         // Handle array response format
         response.forEach(item => {
           if (item.subreddit && item.data && !item.data.error) {
-            convertedData[item.subreddit] = item.data
+            convertedData[item.subreddit] = {
+              ...item.data,
+              last_updated: item.data.last_updated // Add last_updated field
+            }
           }
         })
       } else {
@@ -181,7 +184,10 @@ export const useRedditStore = defineStore('reddit', () => {
         // Handle array response format
         response.forEach(item => {
           if (item.subreddit && item.data && !item.data.error) {
-            convertedData[item.subreddit] = item.data
+            convertedData[item.subreddit] = {
+              ...item.data,
+              last_updated: item.data.last_updated // Add last_updated field
+            }
           }
         })
       } else if (response && typeof response === 'object') {
@@ -270,7 +276,8 @@ export const useRedditStore = defineStore('reddit', () => {
           created_utc: subredditData.created_utc ? Math.floor(subredditData.created_utc / 1000) : null,
           subreddit_type: subredditData.subreddit_type,
           icon_img: subredditData.icon_img,
-          banner_img: subredditData.banner_img
+          banner_img: subredditData.banner_img,
+          last_updated: subredditData.last_updated // Add last_updated field
         },
         posts: formattedPosts
       }
@@ -282,7 +289,8 @@ export const useRedditStore = defineStore('reddit', () => {
         title: subredditData.title,
         title_zh: subredditData.title_zh,
         subscribers: subredditData.subscribers,
-        active_users: subredditData.active_users
+        active_users: subredditData.active_users,
+        last_updated: subredditData.last_updated // Add last_updated field
       }
 
       console.log('✅ Subreddit search completed successfully')

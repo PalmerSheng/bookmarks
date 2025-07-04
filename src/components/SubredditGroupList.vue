@@ -85,7 +85,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRedditStore } from '../stores/reddit.js'
-import { formatTimeAgo, getLatestPostTime } from '../utils/timeFormatter.js'
+import { formatTimeAgo, getLatestPostTime, getSubredditLastUpdateTime } from '../utils/timeFormatter.js'
 import LoadingSpinner from './LoadingSpinner.vue'
 
 const props = defineProps({
@@ -108,8 +108,8 @@ const getPostCount = (subreddit) => {
 }
 
 const getLastUpdateTime = (subreddit) => {
-  const posts = getSubredditPosts(subreddit)
-  return getLatestPostTime(posts)
+  const subredditData = redditStore.posts[subreddit]
+  return getSubredditLastUpdateTime(subredditData)
 }
 
 const formatLastUpdate = (subreddit) => {

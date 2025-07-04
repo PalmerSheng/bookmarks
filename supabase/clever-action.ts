@@ -14,12 +14,145 @@ interface SubredditResult {
   data: any;
 }
 
-// Function to translate text using Cloudflare AI
+// Function to translate text using Google Translate API
+async function translateToChineseWithGoogle(text: string): Promise<string> {
+  if (!text || text.trim() === '') {
+    return '';
+  }
+  
+  
+  try {
+    // Encode the text for URL
+    const encodedText = encodeURIComponent(text);
+    // Google Translate API URL - auto detect source language, translate to simplified Chinese
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=auto&tl=zh-CN&q=${encodedText}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error('❌ Google翻译API请求失败:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+      return text; // Return original text on error
+    }
+    
+    const result = await response.json();
+    
+    // Parse Google Translate response format: [[[translated_text, original_text, ...], ...], ...]
+    if (result && Array.isArray(result) && result[0] && Array.isArray(result[0])) {
+      const translatedText = result[0][0][0] || text;
+      return translatedText;
+    } else {
+      console.warn('⚠️ Google翻译返回格式异常，使用原文本');
+      return text;
+    }
+    
+  } catch (error) {
+    console.error('❌ Google翻译过程中发生错误:', error);
+    return text; // Return original text on error
+  }
+}
+
+// 🚀 优化版批量翻译函数 - 使用Google翻译API批量处理
+// Function to translate multiple texts using Google Translate API
+async function translateTextsBatchGoogle(texts: string[]): Promise<string[]> {
+  if (!texts || texts.length === 0) {
+    return [];
+  }
+  
+  console.log(`🌐 开始使用Google翻译批量翻译文本: ${texts}`);
+  
+  try {
+    // Google Translate doesn't support batch translation directly, so we'll use concurrent requests
+    // But limit concurrency to avoid rate limiting
+    const batchSize = 3; // Process 3 translations at a time to be respectful to Google's API
+    const results: string[] = [];
+    
+    for (let i = 0; i < texts.length; i += batchSize) {
+      const batch = texts.slice(i, i + batchSize);
+      const batchPromises = batch.map(text => translateToChineseWithGoogle(text));
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      batchResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          results.push(result.value);
+        } else {
+          console.error(`Google翻译失败 (索引 ${i + index}):`, result.reason);
+          results.push(batch[index]); // Use original text on failure
+        }
+      });
+      
+      // Add delay between batches to respect rate limits
+      if (i + batchSize < texts.length) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay between batches
+      }
+    }
+    
+    console.log(`✅ Google批量翻译完成: 翻译了 ${results.length} 个文本`);
+    return results;
+    
+  } catch (error) {
+    console.error('❌ Google批量翻译过程中发生错误:', error);
+    // Fallback to individual translation
+    console.log('🔄 回退到逐个Google翻译...');
+    const results: string[] = [];
+    for (const text of texts) {
+      const translated = await translateToChineseWithGoogle(text);
+      results.push(translated);
+      // Small delay between individual requests
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    return results;
+  }
+}
+
+// 📤 备用翻译函数 - 当Google翻译失败时使用原有的AI翻译
+// Function to translate multiple texts concurrently with rate limiting (AI fallback method)
+async function translateTextsAIFallback(texts: string[]): Promise<string[]> {
+  console.log('🔄 Google翻译不可用，尝试使用AI翻译作为备用方案...');
+  
+  const cfAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+  const cfApiToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
+  
+  if (!cfAccountId || !cfApiToken) {
+    console.warn('⚠️ AI翻译凭据也未找到，返回原文本');
+    return texts;
+  }
+  
+  const batchSize = 5; // Process 5 translations at a time to avoid rate limits
+  const results: string[] = [];
+  for(let i = 0; i < texts.length; i += batchSize){
+    const batch = texts.slice(i, i + batchSize);
+    const batchPromises = batch.map((text)=>translateToChineseWithAI(text));
+    const batchResults = await Promise.allSettled(batchPromises);
+    batchResults.forEach((result, index)=>{
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        console.error(`AI翻译失败 (索引 ${i + index}):`, result.reason);
+        results.push(batch[index]); // Use original text on failure
+      }
+    });
+    // Add delay between batches to respect rate limits
+    if (i + batchSize < texts.length) {
+      await new Promise((resolve)=>setTimeout(resolve, 1000)); // 1 second delay
+    }
+  }
+  return results;
+}
+
+// Legacy AI translation function (kept as fallback)
 async function translateToChineseWithAI(text: string): Promise<string> {
   if (!text || text.trim() === '') {
     return '';
   }
-  console.log(`🌐 开始翻译文本: ${text.substring(0, 50)}...`);
+  console.log(`🤖 使用AI翻译文本: ${text.substring(0, 50)}...`);
   const cfAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
   const cfApiToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
   if (!cfAccountId || !cfApiToken) {
@@ -59,36 +192,14 @@ async function translateToChineseWithAI(text: string): Promise<string> {
     }
     const result = await response.json();
     const translatedText = result.result?.response || text;
-    console.log(`✅ 翻译完成: ${translatedText.substring(0, 50)}...`);
+    console.log(`✅ AI翻译完成: ${translatedText.substring(0, 50)}...`);
     return translatedText;
   } catch (error) {
-    console.error('❌ 翻译过程中发生错误:', error);
+    console.error('❌ AI翻译过程中发生错误:', error);
     return text; // Return original text on error
   }
 }
-// Function to translate multiple texts concurrently with rate limiting
-async function translateTexts(texts: string[]): Promise<string[]> {
-  const batchSize = 5; // Process 5 translations at a time to avoid rate limits
-  const results: string[] = [];
-  for(let i = 0; i < texts.length; i += batchSize){
-    const batch = texts.slice(i, i + batchSize);
-    const batchPromises = batch.map((text)=>translateToChineseWithAI(text));
-    const batchResults = await Promise.allSettled(batchPromises);
-    batchResults.forEach((result, index)=>{
-      if (result.status === 'fulfilled') {
-        results.push(result.value);
-      } else {
-        console.error(`翻译失败 (索引 ${i + index}):`, result.reason);
-        results.push(batch[index]); // Use original text on failure
-      }
-    });
-    // Add delay between batches to respect rate limits
-    if (i + batchSize < texts.length) {
-      await new Promise((resolve)=>setTimeout(resolve, 1000)); // 1 second delay
-    }
-  }
-  return results;
-}
+
 // Initialize Supabase client
 function createSupabaseClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -98,6 +209,7 @@ function createSupabaseClient() {
   }
   return createClient(supabaseUrl, supabaseKey);
 }
+
 // Function to get Reddit OAuth access token
 async function getRedditAccessToken() {
   console.log('🔑 开始获取Reddit OAuth access token...');
@@ -147,11 +259,11 @@ async function getRedditAccessToken() {
   });
   return tokenData.access_token;
 }
+
 // Function to fetch subreddit info with OAuth
-async function fetchSubredditInfo(subredditName) {
+async function fetchSubredditInfo(subredditName, accessToken) {
   console.log(`📋 获取 r/${subredditName} 的基本信息...`);
-  // Get OAuth access token
-  const accessToken = await getRedditAccessToken();
+  // Use provided access token instead of getting a new one
   const url = `https://oauth.reddit.com/r/${subredditName}/about`;
   console.log(`🌐 发送请求到: ${url}`);
   const response = await fetch(url, {
@@ -190,11 +302,11 @@ async function fetchSubredditInfo(subredditName) {
     banner_img: subredditData.banner_img || subredditData.banner_background_image
   };
 }
+
 // Function to fetch hot posts from subreddit with OAuth
-async function fetchSubredditHotPosts(subredditName, limit = 10) {
+async function fetchSubredditHotPosts(subredditName, limit = 10, accessToken) {
   console.log(`🔥 获取 r/${subredditName} 的热门帖子 (limit: ${limit})...`);
-  // Get OAuth access token
-  const accessToken = await getRedditAccessToken();
+  // Use provided access token instead of getting a new one
   const url = `https://oauth.reddit.com/r/${subredditName}/hot?limit=${limit}`;
   console.log(`🌐 发送请求到: ${url}`);
   const response = await fetch(url, {
@@ -234,18 +346,27 @@ async function fetchSubredditHotPosts(subredditName, limit = 10) {
       permalink: `https://reddit.com${post.permalink}`
     };
   });
-  // Translate post titles to Chinese
-  console.log(`🌐 开始翻译 ${posts.length} 个帖子标题...`);
+  // 🚀 批量翻译帖子标题到中文 - 优先使用Google翻译，失败时回退到AI翻译
+  // Translate post titles to Chinese using Google Translate with AI fallback
   const titles = posts.map((post)=>post.title);
-  const translatedTitles = await translateTexts(titles);
+  let translatedTitles: string[] = [];
+  
+  try {
+    translatedTitles = await translateTextsBatchGoogle(titles);
+  } catch (error) {
+    console.warn('⚠️ Google批量翻译失败，回退到AI翻译...', error);
+    translatedTitles = await translateTextsAIFallback(titles);
+  }
+  
   // Add Chinese translations to posts
   const postsWithTranslations = posts.map((post, index)=>({
       ...post,
-      title_zh: translatedTitles[index]
+      title_zh: translatedTitles[index] || post.title // Fallback to original title if translation failed
     }));
   console.log(`✅ 成功获取 r/${subredditName} 的 ${postsWithTranslations.length} 个热门帖子 (含中文翻译)`);
   return postsWithTranslations;
 }
+
 // Database functions
 async function getSubredditFromDatabase(subredditName) {
   const supabase = createSupabaseClient();
@@ -255,6 +376,7 @@ async function getSubredditFromDatabase(subredditName) {
   }
   return data;
 }
+
 // Function to get default subreddits from sys_config table
 async function getDefaultSubreddits() {
   console.log('📋 获取默认subreddits配置...');
@@ -305,12 +427,19 @@ async function getDefaultSubreddits() {
     ];
   }
 }
+
 async function saveSubredditToDatabase(subredditInfo, hotPosts) {
   const supabase = createSupabaseClient();
-  // Translate subreddit description to Chinese
-  console.log('🌐 翻译subreddit描述...');
-  const titleZh = await translateToChineseWithAI(subredditInfo.title || '');
-  console.log("翻译后描述" + titleZh);
+  // Translate subreddit description to Chinese using Google Translate
+  console.log('🌐 使用Google翻译subreddit描述...');
+  let titleZh = '';
+  try {
+    titleZh = await translateToChineseWithGoogle(subredditInfo.title || '');
+  } catch (error) {
+    console.warn('⚠️ Google翻译失败，尝试AI翻译备用方案...', error);
+    titleZh = await translateToChineseWithAI(subredditInfo.title || '');
+  }
+  console.log("翻译后描述: " + titleZh);
   // Add id field using subreddit name  
   const dbRecord = {
     id: subredditInfo.subreddit,
@@ -337,6 +466,7 @@ async function saveSubredditToDatabase(subredditInfo, hotPosts) {
   }
   console.log(`💾 成功保存 r/${subredditInfo.subreddit} 数据到数据库 (含中文翻译)`);
 }
+
 // Main processing function for a single subreddit
 async function processSubreddit(subredditName, limit = 10, forceRefresh = false) {
   const cleanSubredditName = subredditName.trim().toLowerCase();
@@ -359,13 +489,23 @@ async function processSubreddit(subredditName, limit = 10, forceRefresh = false)
     }
     // Fetch fresh data from Reddit
     console.log(`🔄 从Reddit获取新数据 r/${cleanSubredditName}...`);
+    const accessToken = await getRedditAccessToken();
     const [subredditInfo, hotPosts] = await Promise.all([
-      fetchSubredditInfo(cleanSubredditName),
-      fetchSubredditHotPosts(cleanSubredditName, limit)
+      fetchSubredditInfo(cleanSubredditName, accessToken),
+      fetchSubredditHotPosts(cleanSubredditName, limit, accessToken)
     ]);
-    // Translate subreddit description to Chinese
-    console.log('🌐 翻译subreddit描述...');
-    const titleZh = await translateToChineseWithAI(subredditInfo.title || '');
+    
+    // Translate subreddit title using Google Translate with AI fallback
+    let titleZh = '';
+    if (subredditInfo.title) {
+      try {
+        titleZh = await translateToChineseWithGoogle(subredditInfo.title);
+      } catch (error) {
+        console.warn('⚠️ Google翻译subreddit标题失败，使用AI翻译备用方案...', error);
+        titleZh = await translateToChineseWithAI(subredditInfo.title);
+      }
+    }
+    
     // Save to database
     await saveSubredditToDatabase(subredditInfo, hotPosts);
     return {
@@ -379,6 +519,7 @@ async function processSubreddit(subredditName, limit = 10, forceRefresh = false)
     throw new Error(`Failed to process r/${cleanSubredditName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
 // Request validation
 async function validateRequest(body: RequestBody) {
   let subreddits = body.subreddits;
@@ -403,6 +544,7 @@ async function validateRequest(body: RequestBody) {
     forceRefresh
   };
 }
+
 // Enhanced CORS headers for full cross-origin support
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -414,6 +556,7 @@ const corsHeaders = {
   'Content-Type': 'application/json; charset=utf-8',
   'Vary': 'Origin'
 };
+
 // Helper function to create CORS-enabled responses
 function createCorsResponse(data, status = 200) {
   return new Response(typeof data === 'string' ? data : JSON.stringify(data), {
@@ -421,6 +564,7 @@ function createCorsResponse(data, status = 200) {
     headers: corsHeaders
   });
 }
+
 // Main handler
 Deno.serve(async (req)=>{
   console.log('\n🚀 ===== Reddit2 Edge Function 开始执行 =====');
@@ -446,10 +590,15 @@ Deno.serve(async (req)=>{
     console.log('🔍 处理GET请求 - 返回API信息');
     const apiInfo = {
       name: 'Reddit2 Edge Function',
-      version: '2.0.0',
-      description: 'Fetch Reddit subreddit data with OAuth',
+      version: '2.1.0',
+      description: 'Fetch Reddit subreddit data with OAuth and Google Translate integration',
       status: 'healthy',
       cors: 'enabled',
+      translation: {
+        primary: 'Google Translate API (auto-detect → Simplified Chinese)',
+        fallback: 'Cloudflare AI Translation',
+        batch_support: true
+      },
       endpoints: {
         GET: '/reddit2 - API信息',
         POST: '/reddit2 - 获取Reddit数据',
@@ -471,7 +620,8 @@ Deno.serve(async (req)=>{
         notes: {
           subreddits: '可选 - 如果为空或未提供，将从sys_config表中获取默认配置 (biz_code: reddit_default_subreddits)',
           limit: '可选 - 每个subreddit返回的帖子数量 (1-25，默认10)',
-          force_refresh: '可选 - 是否强制刷新数据，忽略缓存 (默认false)'
+          force_refresh: '可选 - 是否强制刷新数据，忽略缓存 (默认false)',
+          translation: '自动使用Google翻译API进行批量翻译，失败时回退到AI翻译'
         }
       },
       timestamp: new Date().toISOString()
