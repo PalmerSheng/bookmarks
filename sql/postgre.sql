@@ -17,6 +17,7 @@ create table public.subreddit_top (
   icon_img text null,
   banner_img text null,
   hot_posts jsonb null,
+  is_default boolean null default false,
   last_updated timestamp with time zone null default now(),
   created_at timestamp with time zone null default now(),
   constraint subreddit_top_pkey primary key (subreddit)
