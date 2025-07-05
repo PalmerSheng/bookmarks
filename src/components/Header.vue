@@ -68,21 +68,83 @@
           </div>
         </nav>
         
-        <div class="language-switcher">
-          <button 
-            @click="toggleLanguage"
-            class="lang-toggle-btn"
-            :title="$t('nav.switchLanguage')"
-          >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
-              <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.31z"/>
-            </svg>
-            <span class="lang-text">{{ currentLocale === 'en' ? 'EN' : '中文' }}</span>
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="lang-arrow">
-              <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-            </svg>
-          </button>
+        <!-- 右侧功能区 -->
+        <div class="header-actions">
+          <!-- 用户认证区域 -->
+          <div class="auth-section">
+            <!-- 未登录状态 -->
+            <div v-if="!isSignedIn" class="auth-guest">
+              <SignInButton mode="modal">
+                <button class="auth-btn sign-in-btn">
+                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                  </svg>
+                  {{ $t('nav.signIn') }}
+                </button>
+              </SignInButton>
+            </div>
+            
+            <!-- 已登录状态 -->
+            <div v-else class="auth-user">
+              <div class="user-menu" :class="{ active: isUserMenuOpen }">
+                <button 
+                  class="user-menu-btn"
+                  @click="toggleUserMenu"
+                >
+                  <img 
+                    v-if="user?.imageUrl" 
+                    :src="user.imageUrl" 
+                    :alt="user.fullName || user.username || 'User'"
+                    class="user-avatar"
+                  />
+                  <div v-else class="user-avatar-placeholder">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
+                    </svg>
+                  </div>
+                  <span class="user-name">{{ user?.fullName || user?.username || 'User' }}</span>
+                  <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="dropdown-arrow">
+                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                  </svg>
+                </button>
+                
+                <div class="user-dropdown" :class="{ show: isUserMenuOpen }">
+                  <div class="dropdown-content">
+                    <SignOutButton>
+                      <button 
+                        class="dropdown-item sign-out-item"
+                        @click="closeUserMenu"
+                      >
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+                          <path d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+                        </svg>
+                        {{ $t('nav.signOut') }}
+                      </button>
+                    </SignOutButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 语言切换器 -->
+          <div class="language-switcher">
+            <button 
+              @click="toggleLanguage"
+              class="lang-toggle-btn"
+              :title="$t('nav.switchLanguage')"
+            >
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+                <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.31z"/>
+              </svg>
+              <span class="lang-text">{{ currentLocale === 'en' ? 'EN' : '中文' }}</span>
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="lang-arrow">
+                <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -93,14 +155,19 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { useUser, useAuth, useClerk, SignInButton, SignOutButton, UserButton } from '@clerk/vue'
 import { getAllTools } from '../utils/tools.js'
 
 const { locale, t } = useI18n()
 const route = useRoute()
 const tools = getAllTools()
+const { isSignedIn, user } = useUser()
+const { signOut } = useAuth()
+const { openUserProfile } = useClerk()
 
 const currentLocale = computed(() => locale.value)
 const isMobileMenuOpen = ref(false)
+const isUserMenuOpen = ref(false)
 
 // 移动端菜单控制
 const toggleMobileMenu = () => {
@@ -118,6 +185,49 @@ const closeMobileMenu = () => {
   document.body.style.overflow = ''
 }
 
+// 用户菜单控制
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value
+}
+
+const closeUserMenu = () => {
+  isUserMenuOpen.value = false
+}
+
+// 处理退出登录 - 简化版本
+const handleSignOut = async () => {
+  try {
+    console.log('🔄 Signing out...')
+    await signOut()
+    console.log('✅ Sign out successful')
+    closeUserMenu()
+  } catch (error) {
+    console.error('❌ Sign out error:', error)
+    alert(`退出登录失败: ${error.message}`)
+  }
+}
+
+// 处理用户资料按钮点击
+const handleOpenUserProfile = (event) => {
+  event.stopPropagation()
+  console.log('Profile clicked') // 调试日志
+  
+  try {
+    openUserProfile()
+    closeUserMenu()
+  } catch (error) {
+    console.error('Open profile error:', error)
+  }
+}
+
+// 点击外部关闭用户菜单
+const handleClickOutside = (event) => {
+  const userMenu = document.querySelector('.user-menu')
+  if (userMenu && !userMenu.contains(event.target)) {
+    closeUserMenu()
+  }
+}
+
 // 监听窗口大小变化，大屏幕时关闭移动菜单
 const handleResize = () => {
   if (window.innerWidth > 968) {
@@ -127,10 +237,12 @@ const handleResize = () => {
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  document.removeEventListener('click', handleClickOutside)
   document.body.style.overflow = '' // 清理样式
 })
 
@@ -203,8 +315,9 @@ if (typeof window !== 'undefined') {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 1rem 0;
-  position: relative;
-  overflow: hidden;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header::before {
@@ -347,6 +460,171 @@ if (typeof window !== 'undefined') {
   flex-shrink: 0;
 }
 
+/* 右侧功能区 */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+/* 认证区域样式 */
+.auth-section {
+  display: flex;
+  align-items: center;
+}
+
+.auth-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.auth-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.sign-in-btn {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.sign-in-btn:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
+/* 用户菜单样式 */
+.user-menu {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.user-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-avatar-placeholder {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  transition: transform 0.3s ease;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.user-menu.active .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  min-width: 200px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+.user-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-content {
+  padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: #374151;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.sign-out-item {
+  color: #dc2626;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sign-out-item:hover {
+  background: #fef2f2;
+}
+
 .language-switcher {
   display: flex;
   align-items: center;
@@ -419,6 +697,19 @@ if (typeof window !== 'undefined') {
     font-size: 0.9rem;
   }
   
+  .header-actions {
+    gap: 0.5rem;
+  }
+  
+  .auth-btn, .user-menu-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .user-name {
+    max-width: 100px;
+  }
+  
   .lang-toggle-btn {
     padding: 0.4rem 0.8rem;
     min-width: 100px;
@@ -447,9 +738,10 @@ if (typeof window !== 'undefined') {
     text-align: left;
   }
   
-  .language-switcher {
+  .header-actions {
     order: 2;
     flex-shrink: 0;
+    gap: 0.5rem;
   }
   
   .mobile-menu-btn {
@@ -465,7 +757,7 @@ if (typeof window !== 'undefined') {
     width: 100%;
     height: 100%;
     background: none;
-    z-index: 1000;
+    z-index: 9998;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
   }
@@ -566,6 +858,15 @@ if (typeof window !== 'undefined') {
     font-size: 1.5rem;
   }
   
+  .auth-btn, .user-menu-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .user-name {
+    max-width: 80px;
+  }
+  
   .lang-toggle-btn {
     padding: 0.4rem 0.8rem;
     min-width: 100px;
@@ -593,6 +894,20 @@ if (typeof window !== 'undefined') {
   
   .logo h1 {
     font-size: 1.3rem;
+  }
+  
+  .header-actions {
+    gap: 0.25rem;
+  }
+  
+  .auth-btn, .user-menu-btn {
+    padding: 0.3rem 0.6rem;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+  }
+  
+  .user-name {
+    max-width: 60px;
   }
   
   .lang-toggle-btn {

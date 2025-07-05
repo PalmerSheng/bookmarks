@@ -6,7 +6,12 @@
     "reddit": "Reddit Overview",
     "calculator": "Calculator",
     "translator": "Translator",
-    "menu": "Menu"
+    "menu": "Menu",
+    "switchLanguage": "Switch Language",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "profile": "Profile",
+    "account": "Account"
   },
   "home": {
     "welcome": {

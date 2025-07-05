@@ -128,7 +128,7 @@ const TRANSLATE_API_URL = import.meta.env.VITE_SUPABASE_TRANSLATE_URL || 'https:
 // Bearer Token - 使用环境变量或fallback，与Reddit store保持一致
 const SUPABASE_BEARER_TOKEN = import.meta.env.VITE_SUPABASE_TOKEN 
   ? `Bearer ${import.meta.env.VITE_SUPABASE_TOKEN}`
-  : 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1c2RpY3pxb3VpbGxodm92b2RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4OTM2NTUsImV4cCI6MjA2NjQ2OTY1NX0.-ejxki8XiXECuGVOVVi9d5WgyHVefy0nxbu4qftMsLw'
+  : 'Bearer xxx'
 
 // Translation function
 const translate = async () => {

@@ -11,10 +11,16 @@ package-lock.json
 
 # Environment variables
 .env
-.env.local
+.env.*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# 如果你想要忽略实际的环境配置文件，取消下面的注释
+# 但通常建议将这些文件提交到版本控制中，只是要确保敏感信息已经被替换
+# .env.development
+# .env.test
+# .env.production
 
 # IDE
 .vscode/

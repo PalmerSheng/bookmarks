@@ -6,7 +6,12 @@
     "reddit": "Reddit 概览",
     "calculator": "计算器",
     "translator": "翻译器",
-    "menu": "菜单"
+    "menu": "菜单",
+    "switchLanguage": "切换语言",
+    "signIn": "登录",
+    "signOut": "退出",
+    "profile": "个人资料",
+    "account": "账户"
   },
   "home": {
     "welcome": {
