@@ -2,7 +2,7 @@
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.flytools.pages.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.flytools.pages.dev https://api.clerk.com; img-src 'self' https://img.clerk.com data: blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-src 'self' https://challenges.cloudflare.com; form-action 'self';
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://clerk.flytools.pages.dev https://optimal-meerkat-71.clerk.accounts.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.flytools.pages.dev https://optimal-meerkat-71.clerk.accounts.dev https://api.clerk.com; img-src 'self' https://img.clerk.com data: blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-src 'self' https://challenges.cloudflare.com; form-action 'self';
 
 /api/*
   Access-Control-Allow-Origin: *
