@@ -243,7 +243,6 @@ const copyToClipboard = async () => {
 <style scoped>
 .translator {
   min-height: calc(100vh - 200px);
-  padding: 2rem 0;
 }
 
 .container {
@@ -577,8 +576,8 @@ img.method-icon {
   
   .input-textarea,
   .output-textarea {
-    height: 200px;
-    min-height: 150px;
+    height: 120px;
+    min-height: 100px;
   }
   
   .header-actions {
