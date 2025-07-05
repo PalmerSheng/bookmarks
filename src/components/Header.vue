@@ -73,7 +73,7 @@
           <!-- 用户认证区域 -->
           <div class="auth-section">
             <!-- 未登录状态 -->
-            <div v-if="!isSignedIn && authEnabled" class="auth-guest">
+            <div v-if="!isSignedIn" class="auth-guest">
               <SignInButton mode="modal">
                 <button class="auth-btn sign-in-btn">
                   <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -82,16 +82,6 @@
                   {{ $t('nav.signIn') }}
                 </button>
               </SignInButton>
-            </div>
-            
-            <!-- 认证不可用状态 -->
-            <div v-else-if="!authEnabled" class="auth-disabled">
-              <button class="auth-btn auth-disabled-btn" disabled>
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
-                </svg>
-                {{ $t('nav.authDisabled') }}
-              </button>
             </div>
             
             <!-- 已登录状态 -->
@@ -174,11 +164,6 @@ const tools = getAllTools()
 const { isSignedIn, user } = useUser()
 const { signOut } = useAuth()
 const { openUserProfile } = useClerk()
-
-// 检查认证功能是否可用
-const authEnabled = computed(() => {
-  return !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-})
 
 const currentLocale = computed(() => locale.value)
 const isMobileMenuOpen = ref(false)
@@ -520,20 +505,6 @@ if (typeof window !== 'undefined') {
 .sign-in-btn:hover {
   background: rgba(34, 197, 94, 0.3);
   border-color: rgba(34, 197, 94, 0.6);
-}
-
-.auth-disabled-btn {
-  background: rgba(107, 114, 128, 0.2);
-  border-color: rgba(107, 114, 128, 0.4);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.auth-disabled-btn:hover {
-  background: rgba(107, 114, 128, 0.2);
-  border-color: rgba(107, 114, 128, 0.4);
-  box-shadow: none;
-  transform: none;
 }
 
 /* 用户菜单样式 */

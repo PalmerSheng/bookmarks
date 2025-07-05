@@ -1,2 +1,5 @@
+# API 路由不重定向（由 Cloudflare Pages Functions 处理）
+/api/* 200
+
 # SPA路由重定向 - 确保所有前端路由都指向index.html
 /*    /index.html   200

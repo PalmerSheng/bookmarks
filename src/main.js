@@ -44,28 +44,9 @@ app.use(i18n)
 // 集成 Clerk 认证
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
-// 总是安装 Clerk 插件，但使用不同的配置
 if (!clerkPublishableKey) {
-  console.warn('Missing Clerk Publishable Key. Authentication features will be disabled.')
-  // 使用一个测试密钥来避免组件错误，但用户将无法真正登录
-  app.use(clerkPlugin, {
-    publishableKey: 'pk_test_disabled',
-    afterSignOutUrl: '/',
-    appearance: {
-      baseTheme: undefined,
-      variables: {
-        colorPrimary: '#667eea',
-        colorText: '#1f2937',
-        colorTextSecondary: '#6b7280',
-        colorBackground: '#ffffff',
-        colorInputBackground: '#f9fafb',
-        colorInputText: '#1f2937',
-        borderRadius: '0.5rem'
-      }
-    }
-  })
+  console.warn('Missing Clerk Publishable Key. Please add VITE_CLERK_PUBLISHABLE_KEY to your environment variables.')
 } else {
-  console.log('Clerk authentication enabled')
   app.use(clerkPlugin, {
     publishableKey: clerkPublishableKey,
     afterSignOutUrl: '/',
@@ -83,8 +64,5 @@ if (!clerkPublishableKey) {
     }
   })
 }
-
-// 添加全局属性来标识认证是否可用
-app.config.globalProperties.$authEnabled = !!clerkPublishableKey
 
 app.mount('#app') 
