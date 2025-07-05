@@ -1,10 +1,11 @@
 {
   "nav": {
-    "title": "Reddit Top Posts",
-    "subtitle": "Discover Popular Content",
+    "title": "Home",
+    "subtitle": "",
     "home": "Home",
     "reddit": "Reddit Overview",
-    "calculator": "Calculator"
+    "calculator": "Calculator",
+    "translator": "Translator"
   },
   "home": {
     "welcome": {
@@ -21,6 +22,11 @@
         "title": "Calculator",
         "description": "Perform calculations with our easy-to-use calculator. Perfect for quick computations and data analysis.",
         "action": "Open Calculator"
+      },
+      "translator": {
+        "title": "Translator",
+        "description": "Translate text using Google Translate or AI translation. Support for multiple languages with fast translation.",
+        "action": "Start Translating"
       }
     },
     "navigation": {
@@ -84,7 +90,27 @@
   },
   "calculator": {
     "title": "Calculator",
+    "subtitle": "Perform calculations and computations",
     "history": "History",
+    "clearHistory": "Clear History"
+  },
+  "translator": {
+    "title": "Translator",
+    "subtitle": "Translate text between languages",
+    "method": "Translation Method",
+    "from": "From",
+    "to": "To",
+    "autoDetect": "Auto Detect",
+    "inputText": "Input Text",
+    "translationResult": "Translation Result",
+    "inputPlaceholder": "Enter text to translate...",
+    "outputPlaceholder": "Translation will appear here...",
+    "translate": "Translate",
+    "translating": "Translating...",
+    "translatedBy": "Translated by",
+    "clear": "Clear",
+    "copy": "Copy",
+    "history": "Translation History",
     "clearHistory": "Clear History"
   },
   "common": {

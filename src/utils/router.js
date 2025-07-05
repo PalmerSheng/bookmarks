@@ -18,6 +18,7 @@ const importToolComponent = (toolId) => {
   const componentMap = {
     'reddit': () => import('../views/RedditOverview.vue'),
     'calculator': () => import('../views/Calculator.vue'),
+    'translator': () => import('../views/Translator.vue'),
     // 'calculator2': () => import('../views/Calculator2.vue'),
     // 在这里添加新工具的组件映射
     // 'todolist': () => import('../views/TodoList.vue'),

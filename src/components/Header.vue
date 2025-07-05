@@ -3,8 +3,7 @@
     <div class="container">
       <div class="header-content">
         <div class="logo">
-          <h1>{{ $t('nav.title') }}</h1>
-          <p>{{ $t('nav.subtitle') }}</p>
+          <h1>{{ pageTitle }}</h1>
         </div>
         
         <!-- 导航菜单 -->
@@ -60,12 +59,62 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { getAllTools } from '../utils/tools.js'
 
-const { locale } = useI18n()
+const { locale, t } = useI18n()
+const route = useRoute()
 const tools = getAllTools()
 
 const currentLocale = computed(() => locale.value)
+
+// 动态标题计算属性
+const pageTitle = computed(() => {
+  const routeName = route.name
+  console.log(routeName)
+  // 根据路由名称返回对应的标题
+  switch (routeName) {
+    case 'Home':
+      return t('nav.title')
+    case 'Reddit':
+      return t('reddit.overview.title')
+    case 'Calculator':
+      return t('calculator.title')
+    case 'Translator':
+      return t('translator.title')
+    default:
+      // 如果是其他工具页面，尝试从工具配置中获取标题
+      const tool = tools.find(t => t.routeName === routeName)
+      if (tool) {
+        return t(`${tool.i18nKey}.title`)
+      }
+      return t('nav.title')
+  }
+})
+
+// 动态副标题计算属性
+const pageSubtitle = computed(() => {
+  const routeName = route.name
+  
+  // 根据路由名称返回对应的副标题
+  switch (routeName) {
+    case 'Home':
+      return t('nav.subtitle')
+    case 'Reddit':
+      return t('reddit.overview.subtitle')
+    case 'Calculator':
+      return t('calculator.subtitle')
+    case 'Translator':
+      return t('translator.subtitle')
+    default:
+      // 如果是其他工具页面，使用通用副标题
+      const tool = tools.find(t => t.routeName === routeName)
+      if (tool) {
+        return tool.description
+      }
+      return t('nav.subtitle')
+  }
+})
 
 const switchLanguage = (lang) => {
   locale.value = lang

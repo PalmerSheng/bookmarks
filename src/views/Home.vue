@@ -47,7 +47,6 @@ const tools = getAllTools()
 <style scoped>
 .home {
   min-height: calc(100vh - 200px);
-  padding: 4rem 0;
   display: flex;
   align-items: center;
 }
@@ -94,7 +93,7 @@ const tools = getAllTools()
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
-  max-width: 800px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 

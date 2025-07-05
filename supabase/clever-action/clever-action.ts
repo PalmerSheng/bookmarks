@@ -311,6 +311,19 @@ async function saveSubredditToDatabase(subredditInfo, hotPosts) {
     throw new Error(`Database upsert error: ${error.message}`);
   }
 }
+// Check if we need fresh data for any subreddit
+function needsFreshData(subredditNames, cachedData, forceRefresh) {
+  if (forceRefresh) return true;
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
+  for (const name of subredditNames){
+    const cleanName = name.trim().toLowerCase();
+    const cached = cachedData[cleanName];
+    if (!cached) return true;
+    const lastUpdated = new Date(cached.last_updated);
+    if (lastUpdated <= twelveHoursAgo) return true;
+  }
+  return false;
+}
 // Main processing function for a single subreddit
 async function processSubreddit(subredditName, limit, forceRefresh, cachedData, accessToken) {
   const cleanSubredditName = subredditName.trim().toLowerCase();
@@ -326,6 +339,10 @@ async function processSubreddit(subredditName, limit, forceRefresh, cachedData, 
           source: 'cache'
         };
       }
+    }
+    // We need fresh data but don't have access token
+    if (!accessToken) {
+      throw new Error('Access token required for fetching fresh data');
     }
     // Fetch fresh data from Reddit
     const [subredditInfo, hotPosts] = await Promise.all([
@@ -379,7 +396,7 @@ async function validateRequest(body) {
 // Enhanced CORS headers for full cross-origin support
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE, PATCH, HEAD',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, X-File-Name, X-HTTP-Method-Override',
   'Access-Control-Expose-Headers': 'Content-Length, X-JSON',
   'Access-Control-Allow-Credentials': 'false',
@@ -396,47 +413,26 @@ function createCorsResponse(data, status = 200) {
 }
 // Main handler
 Deno.serve(async (req)=>{
+  const requestStartTime = Date.now();
+  console.log(`🚀 Request started at ${new Date().toISOString()}`);
   // Handle CORS preflight requests (OPTIONS)
   if (req.method === 'OPTIONS') {
     return createCorsResponse(null, 204);
-  }
-  // Handle GET requests (for health checks or basic info)
-  if (req.method === 'GET') {
-    const apiInfo = {
-      name: 'Reddit2 Edge Function',
-      version: '2.2.0',
-      description: 'Optimized Reddit subreddit data fetcher with efficient database queries',
-      status: 'healthy',
-      cors: 'enabled',
-      translation: {
-        primary: 'Google Translate API (auto-detect → Simplified Chinese)',
-        fallback: 'Cloudflare AI Translation',
-        batch_support: true
-      },
-      optimizations: [
-        'Single database query per request',
-        'Batch processing',
-        'Reduced logging overhead',
-        'Connection pooling'
-      ],
-      timestamp: new Date().toISOString()
-    };
-    return createCorsResponse(apiInfo);
   }
   try {
     // Only allow POST requests for main functionality
     if (req.method !== 'POST') {
       return createCorsResponse({
         error: 'Method not allowed',
-        message: 'Only POST requests are supported for data fetching. Use GET for API info.',
+        message: 'Only POST requests are supported.',
         allowed_methods: [
-          'GET',
           'POST',
           'OPTIONS'
         ]
       }, 405);
     }
     // Parse request body
+    const parseStartTime = Date.now();
     let body = {};
     try {
       const textBody = await req.text();
@@ -450,22 +446,47 @@ Deno.serve(async (req)=>{
         details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
       }, 400);
     }
+    const parseEndTime = Date.now();
+    console.log(`📝 Request body parsed in ${parseEndTime - parseStartTime}ms`);
     // Validate input and get configuration
+    const validateStartTime = Date.now();
     const { subreddits, limit, forceRefresh } = await validateRequest(body);
+    const validateEndTime = Date.now();
+    console.log(`✅ Request validation completed in ${validateEndTime - validateStartTime}ms`);
+    console.log(`📊 Processing ${subreddits.length} subreddits: [${subreddits.join(', ')}]`);
     // Single database query to get all cached data
+    const dbQueryStartTime = Date.now();
     const cachedData = await getAllSubredditsFromDatabase(subreddits);
-    // Get Reddit access token once
-    const accessToken = await getRedditAccessToken();
+    const dbQueryEndTime = Date.now();
+    console.log(`🗄️ Database query completed in ${dbQueryEndTime - dbQueryStartTime}ms`);
+    // Only get Reddit access token if we need fresh data
+    let accessToken;
+    const tokenStartTime = Date.now();
+    let tokenEndTime = tokenStartTime;
+    if (needsFreshData(subreddits, cachedData, forceRefresh)) {
+      accessToken = await getRedditAccessToken();
+      tokenEndTime = Date.now();
+      console.log(`🔑 Reddit access token obtained in ${tokenEndTime - tokenStartTime}ms`);
+    } else {
+      console.log(`💾 Using cached data, skipping token retrieval`);
+    }
     // Process all subreddits with optimized parallel processing
+    const processingStartTime = Date.now();
+    console.log(`⚡ Starting parallel processing of subreddits...`);
     const promises = subreddits.map(async (subreddit)=>{
+      const subredditStartTime = Date.now();
       try {
         const data = await processSubreddit(subreddit, limit, forceRefresh, cachedData, accessToken);
+        const subredditEndTime = Date.now();
+        console.log(`✨ r/${subreddit} processed in ${subredditEndTime - subredditStartTime}ms (source: ${data.source || 'unknown'})`);
         return {
           subreddit,
           data,
           success: true
         };
       } catch (error) {
+        const subredditEndTime = Date.now();
+        console.log(`❌ r/${subreddit} failed in ${subredditEndTime - subredditStartTime}ms: ${error instanceof Error ? error.message : 'Unknown error'}`);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
           subreddit,
@@ -477,7 +498,10 @@ Deno.serve(async (req)=>{
       }
     });
     const results = await Promise.allSettled(promises);
+    const processingEndTime = Date.now();
+    console.log(`🔄 All subreddits processed in ${processingEndTime - processingStartTime}ms`);
     // Process results
+    const resultsProcessingStartTime = Date.now();
     const orderedResults = results.map((result, index)=>{
       const subreddit = subreddits[index];
       if (result.status === 'fulfilled') {
@@ -494,6 +518,10 @@ Deno.serve(async (req)=>{
         };
       }
     });
+    const resultsProcessingEndTime = Date.now();
+    console.log(`📋 Results processed in ${resultsProcessingEndTime - resultsProcessingStartTime}ms`);
+    const totalRequestTime = Date.now() - requestStartTime;
+    console.log(`🏁 Total request completed in ${totalRequestTime}ms`);
     const response = {
       success: true,
       data: orderedResults,
@@ -504,16 +532,32 @@ Deno.serve(async (req)=>{
         subreddits_used: subreddits,
         used_default_subreddits: !body.subreddits || !Array.isArray(body.subreddits) || body.subreddits.length === 0,
         timestamp: new Date().toISOString(),
-        cors_enabled: true
+        cors_enabled: true,
+        timing: {
+          total_duration_ms: totalRequestTime,
+          stages: {
+            request_parsing_ms: parseEndTime - parseStartTime,
+            validation_ms: validateEndTime - validateStartTime,
+            database_query_ms: dbQueryEndTime - dbQueryStartTime,
+            token_retrieval_ms: tokenEndTime - tokenStartTime,
+            subreddit_processing_ms: processingEndTime - processingStartTime,
+            results_processing_ms: resultsProcessingEndTime - resultsProcessingStartTime
+          }
+        }
       }
     };
     return createCorsResponse(response);
   } catch (error) {
+    const totalRequestTime = Date.now() - requestStartTime;
+    console.log(`💥 Request failed after ${totalRequestTime}ms: ${error instanceof Error ? error.message : 'Unknown error'}`);
     const errorResponse = {
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error occurred',
       timestamp: new Date().toISOString(),
-      cors_enabled: true
+      cors_enabled: true,
+      timing: {
+        total_duration_ms: totalRequestTime
+      }
     };
     return createCorsResponse(errorResponse, 500);
   }

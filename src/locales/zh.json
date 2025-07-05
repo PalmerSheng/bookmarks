@@ -1,10 +1,11 @@
 {
   "nav": {
-    "title": "Reddit 热门帖子",
-    "subtitle": "发现热门内容",
+    "title": "首页",
+    "subtitle": "",
     "home": "首页",
     "reddit": "Reddit 概览",
-    "calculator": "计算器"
+    "calculator": "计算器",
+    "translator": "翻译器"
   },
   "home": {
     "welcome": {
@@ -21,6 +22,11 @@
         "title": "计算器",
         "description": "使用我们易于使用的计算器进行计算。非常适合快速计算和数据分析。",
         "action": "打开计算器"
+      },
+      "translator": {
+        "title": "翻译器",
+        "description": "使用谷歌翻译或AI翻译功能，支持多种语言的快速翻译。",
+        "action": "开始翻译"
       }
     },
     "navigation": {
@@ -84,7 +90,27 @@
   },
   "calculator": {
     "title": "计算器",
+    "subtitle": "进行计算和运算",
     "history": "历史记录",
+    "clearHistory": "清除历史"
+  },
+  "translator": {
+    "title": "翻译器",
+    "subtitle": "在不同语言间翻译文本",
+    "method": "翻译方式",
+    "from": "源语言",
+    "to": "目标语言",
+    "autoDetect": "自动检测",
+    "inputText": "输入文本",
+    "translationResult": "翻译结果",
+    "inputPlaceholder": "请输入要翻译的文本...",
+    "outputPlaceholder": "翻译结果将显示在这里...",
+    "translate": "翻译",
+    "translating": "翻译中...",
+    "translatedBy": "翻译由",
+    "clear": "清除",
+    "copy": "复制",
+    "history": "翻译历史",
     "clearHistory": "清除历史"
   },
   "common": {
