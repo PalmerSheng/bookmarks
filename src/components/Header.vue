@@ -70,18 +70,18 @@
         
         <div class="language-switcher">
           <button 
-            @click="switchLanguage('en')"
-            :class="{ active: currentLocale === 'en' }"
-            class="lang-btn"
+            @click="toggleLanguage"
+            class="lang-toggle-btn"
+            :title="$t('nav.switchLanguage')"
           >
-            EN
-          </button>
-          <button 
-            @click="switchLanguage('zh')"
-            :class="{ active: currentLocale === 'zh' }"
-            class="lang-btn"
-          >
-            中文
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M4.545 6.714 4.11 8H3l1.862-5h1.284L8 8H6.833l-.435-1.286H4.545zm1.634-.736L5.5 3.956h-.049l-.679 2.022H6.18z"/>
+              <path d="M0 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-3H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2zm7.138 9.995c.193.301.402.583.63.846-.748.575-1.673 1.001-2.768 1.292.178.217.451.635.555.867 1.125-.359 2.08-.844 2.886-1.494.777.665 1.739 1.165 2.93 1.472.133-.254.414-.673.629-.89-1.125-.253-2.057-.694-2.82-1.284.681-.747 1.222-1.651 1.621-2.757H14V8h-3v1.047h.765c-.318.844-.74 1.546-1.272 2.13a6.066 6.066 0 0 1-.415-.492 1.988 1.988 0 0 1-.94.31z"/>
+            </svg>
+            <span class="lang-text">{{ currentLocale === 'en' ? 'EN' : '中文' }}</span>
+            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="lang-arrow">
+              <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+            </svg>
           </button>
         </div>
       </div>
@@ -182,9 +182,11 @@ const pageSubtitle = computed(() => {
   }
 })
 
-const switchLanguage = (lang) => {
-  locale.value = lang
-  localStorage.setItem('language', lang)
+// 语言切换函数
+const toggleLanguage = () => {
+  const newLang = currentLocale.value === 'en' ? 'zh' : 'en'
+  locale.value = newLang
+  localStorage.setItem('language', newLang)
 }
 
 // Load saved language on mount
@@ -218,7 +220,7 @@ if (typeof window !== 'undefined') {
 }
 
 .container {
-  max-width: 1800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
   position: relative;
@@ -229,8 +231,8 @@ if (typeof window !== 'undefined') {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 1rem;
+  min-height: 60px;
 }
 
 .logo h1 {
@@ -292,14 +294,16 @@ if (typeof window !== 'undefined') {
 
 .navigation {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .nav-content {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .mobile-menu-header {
@@ -324,11 +328,12 @@ if (typeof window !== 'undefined') {
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
 }
 
 .nav-link:hover {
   background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
@@ -344,30 +349,86 @@ if (typeof window !== 'undefined') {
 
 .language-switcher {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.lang-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+.lang-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 0.4rem 0.8rem;
+  padding: 0.5rem 1rem;
   border-radius: 25px;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
+  min-width: 120px;
+  height: 44px;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
-.lang-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-2px);
+.lang-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.lang-btn.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
-  border-color: rgba(255, 255, 255, 0.9);
+.lang-text {
+  font-size: 0.9rem;
+  min-width: 2.5rem;
+  text-align: center;
+  display: inline-block;
+}
+
+.lang-arrow {
+  transition: transform 0.3s ease;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.lang-toggle-btn:hover .lang-arrow {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 1200px) {
+  .container {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+  
+  .header-content {
+    gap: 0.75rem;
+  }
+  
+  .navigation {
+    gap: 0.5rem;
+  }
+  
+  .nav-content {
+    gap: 0.5rem;
+  }
+  
+  .nav-link {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  .lang-toggle-btn {
+    padding: 0.4rem 0.8rem;
+    min-width: 100px;
+    height: 40px;
+  }
+  
+  .lang-text {
+    font-size: 0.8rem;
+    min-width: 2rem;
+  }
 }
 
 @media (max-width: 968px) {
@@ -375,20 +436,26 @@ if (typeof window !== 'undefined') {
     text-align: center;
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
     gap: 1rem;
+    min-height: 60px;
   }
   
   .logo {
     order: 1;
+    flex: 1;
+    text-align: left;
   }
   
   .language-switcher {
     order: 2;
+    flex-shrink: 0;
   }
   
   .mobile-menu-btn {
     display: flex;
     order: 3;
+    flex-shrink: 0;
   }
   
   .navigation {
@@ -498,11 +565,26 @@ if (typeof window !== 'undefined') {
   .logo h1 {
     font-size: 1.5rem;
   }
+  
+  .lang-toggle-btn {
+    padding: 0.4rem 0.8rem;
+    min-width: 100px;
+    height: 40px;
+  }
+  
+  .lang-text {
+    font-size: 0.8rem;
+    min-width: 2rem;
+  }
 }
 
 @media (max-width: 640px) {
   .header {
     padding: 0.75rem 0;
+  }
+  
+  .header-content {
+    min-height: 50px;
   }
   
   .nav-content {
@@ -513,13 +595,16 @@ if (typeof window !== 'undefined') {
     font-size: 1.3rem;
   }
   
-  .language-switcher {
-    gap: 0.25rem;
+  .lang-toggle-btn {
+    padding: 0.3rem 0.6rem;
+    gap: 0.3rem;
+    min-width: 85px;
+    height: 36px;
   }
   
-  .lang-btn {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.9rem;
+  .lang-text {
+    font-size: 0.75rem;
+    min-width: 1.8rem;
   }
 }
 </style> 
