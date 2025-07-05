@@ -1,70 +1,17 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-// Function to translate text using Google Translate API
-async function translateToChineseWithGoogle(text) {
-  if (!text || text.trim() === '') {
-    return '';
-  }
-  try {
-    const encodedText = encodeURIComponent(text);
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=auto&tl=zh-CN&q=${encodedText}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
-    if (!response.ok) {
-      return text;
-    }
-    const result = await response.json();
-    if (result && Array.isArray(result) && result[0] && Array.isArray(result[0])) {
-      const translatedText = result[0][0][0] || text;
-      return translatedText;
-    } else {
-      return text;
-    }
-  } catch (error) {
-    return text;
-  }
-}
-// Function to translate multiple texts using Google Translate API
-async function translateTextsBatchGoogle(texts) {
-  if (!texts || texts.length === 0) {
-    return [];
-  }
-  try {
-    const batchSize = 3;
-    const results = [];
-    for(let i = 0; i < texts.length; i += batchSize){
-      const batch = texts.slice(i, i + batchSize);
-      const batchPromises = batch.map((text)=>translateToChineseWithGoogle(text));
-      const batchResults = await Promise.allSettled(batchPromises);
-      batchResults.forEach((result, index)=>{
-        if (result.status === 'fulfilled') {
-          results.push(result.value);
-        } else {
-          results.push(batch[index]);
-        }
-      });
-      if (i + batchSize < texts.length) {
-        await new Promise((resolve)=>setTimeout(resolve, 500));
-      }
-    }
-    return results;
-  } catch (error) {
-    const results = [];
-    for (const text of texts){
-      const translated = await translateToChineseWithGoogle(text);
-      results.push(translated);
-      await new Promise((resolve)=>setTimeout(resolve, 200));
-    }
-    return results;
-  }
-}
-// Legacy AI translation function (kept as fallback)
-async function translateToChineseWithAI(text) {
+
+// Type declarations for Deno runtime
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve: (handler: (req: Request) => Promise<Response> | Response) => void;
+};
+
+// Function to translate text using Cloudflare AI
+async function translateToChineseWithAI(text: string): Promise<string> {
   if (!text || text.trim() === '') {
     return '';
   }
@@ -73,8 +20,20 @@ async function translateToChineseWithAI(text) {
   if (!cfAccountId || !cfApiToken) {
     return text;
   }
-  const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/meta/llama-4-scout-17b-16e-instruct`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
   try {
+    console.log("翻译内容：" + JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional translator. Translate the given English text into Simplified Chinese. Only return the translated text in Simplified Chinese without any additional explanations, formatting, or quotation marks."
+          },
+          {
+            role: "user",
+            content: text
+          }
+        ]
+      }))
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -86,7 +45,7 @@ async function translateToChineseWithAI(text) {
         messages: [
           {
             role: "system",
-            content: "You are a friendly translator assistant. Translate the given English text into Simplified Chinese. Only return the translated text in Simplified Chinese without any additional explanations or formatting."
+            content: "You are a professional translator. Translate the given English text into Simplified Chinese. Only return the translated text in Simplified Chinese without any additional explanations, formatting, or quotation marks."
           },
           {
             role: "user",
@@ -100,13 +59,139 @@ async function translateToChineseWithAI(text) {
     }
     const result = await response.json();
     const translatedText = result.result?.response || text;
-    return translatedText;
+    return translatedText.trim();
   } catch (error) {
     return text;
   }
 }
+
+// Optimized function to translate all texts for a subreddit in one API call
+async function translateSubredditTextsInBatch(subredditTitle: string, postTitles: string[]): Promise<{
+  subredditTitleZh: string;
+  postTitlesZh: string[];
+}> {
+  // If no text to translate, return originals
+  if (!subredditTitle && (!postTitles || postTitles.length === 0)) {
+    return {
+      subredditTitleZh: subredditTitle || '',
+      postTitlesZh: postTitles || []
+    };
+  }
+
+  const cfAccountId = Deno.env.get('CLOUDFLARE_ACCOUNT_ID');
+  const cfApiToken = Deno.env.get('CLOUDFLARE_API_TOKEN');
+  
+  if (!cfAccountId || !cfApiToken) {
+    return {
+      subredditTitleZh: subredditTitle || '',
+      postTitlesZh: postTitles || []
+    };
+  }
+
+  try {
+    // Combine all texts into one batch with separators
+    const allTexts: string[] = [];
+    let subredditIndex = -1;
+    let postStartIndex = -1;
+
+    if (subredditTitle && subredditTitle.trim()) {
+      subredditIndex = allTexts.length;
+      allTexts.push(subredditTitle.trim());
+    }
+
+    if (postTitles && postTitles.length > 0) {
+      postStartIndex = allTexts.length;
+      allTexts.push(...postTitles.filter(title => title && title.trim()));
+    }
+
+    // If no texts to translate, return originals
+    if (allTexts.length === 0) {
+      return {
+        subredditTitleZh: subredditTitle || '',
+        postTitlesZh: postTitles || []
+      };
+    }
+
+    // Create a single prompt with numbered items for batch translation
+    const batchText = allTexts.map((text, index) => `${index + 1}. ${text}`).join('\n');
+    
+    const url = `https://api.cloudflare.com/client/v4/accounts/${cfAccountId}/ai/run/@cf/meta/llama-3.1-8b-instruct`;
+    
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${cfApiToken}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'supabase-reddit-translator/1.0.0'
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional translator. Translate the given numbered English texts into Simplified Chinese. Return the translated texts in the same numbered format, with each translation on a separate line. Only return the numbered translations without any additional explanations or formatting."
+          },
+          {
+            role: "user",
+            content: batchText
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      console.log(`翻译API调用失败: ${response.status}`);
+      return {
+        subredditTitleZh: subredditTitle || '',
+        postTitlesZh: postTitles || []
+      };
+    }
+
+    const result = await response.json();
+    const translatedText = result.result?.response || '';
+    
+    // Parse the numbered translations
+    const translatedLines = translatedText.split('\n')
+      .map(line => line.trim())
+      .filter(line => line)
+      .map(line => {
+        // Remove numbering (e.g., "1. " or "1." or "1 ")
+        return line.replace(/^\d+\.?\s*/, '').trim();
+      });
+
+    // Extract results based on original indices
+    let subredditTitleZh = subredditTitle || '';
+    let postTitlesZh = postTitles || [];
+
+    if (subredditIndex >= 0 && translatedLines[subredditIndex]) {
+      subredditTitleZh = translatedLines[subredditIndex];
+    }
+
+    if (postStartIndex >= 0) {
+      const translatedPosts = translatedLines.slice(postStartIndex, postStartIndex + (postTitles?.length || 0));
+      postTitlesZh = postTitles?.map((originalTitle, index) => {
+        return translatedPosts[index] || originalTitle;
+      }) || [];
+    }
+
+    console.log(`批量翻译完成: subreddit标题${subredditIndex >= 0 ? '已翻译' : '跳过'}, ${postTitlesZh.length}个帖子标题已翻译`);
+
+    return {
+      subredditTitleZh,
+      postTitlesZh
+    };
+
+  } catch (error) {
+    console.log(`批量翻译失败: ${error}`);
+    return {
+      subredditTitleZh: subredditTitle || '',
+      postTitlesZh: postTitles || []
+    };
+  }
+}
+
 // Initialize Supabase client once
-let supabaseClient = null;
+let supabaseClient: any = null;
 function getSupabaseClient() {
   if (!supabaseClient) {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -119,7 +204,7 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 // Function to get Reddit OAuth access token
-async function getRedditAccessToken() {
+async function getRedditAccessToken(): Promise<string> {
   const appId = Deno.env.get('REDDIT_APP_ID');
   const appSecret = Deno.env.get('REDDIT_APP_SECRET');
   if (!appId || !appSecret) {
@@ -136,14 +221,14 @@ async function getRedditAccessToken() {
     body: 'grant_type=client_credentials'
   });
   if (!response.ok) {
-    const errorText = await response.text().catch(()=>'Unknown error');
+    const errorText = await response.text().catch(() => 'Unknown error');
     throw new Error(`Failed to get Reddit access token: ${response.status} ${response.statusText}. Response: ${errorText}`);
   }
   const tokenData = await response.json();
   return tokenData.access_token;
 }
 // Function to fetch subreddit info with OAuth
-async function fetchSubredditInfo(subredditName, accessToken) {
+async function fetchSubredditInfo(subredditName: string, accessToken: string) {
   const url = `https://oauth.reddit.com/r/${subredditName}/about`;
   const response = await fetch(url, {
     headers: {
@@ -153,7 +238,7 @@ async function fetchSubredditInfo(subredditName, accessToken) {
     }
   });
   if (!response.ok) {
-    const errorText = await response.text().catch(()=>'Unknown error');
+    const errorText = await response.text().catch(() => 'Unknown error');
     throw new Error(`Failed to fetch subreddit info: ${response.status} ${response.statusText}. Response: ${errorText}`);
   }
   const data = await response.json();
@@ -175,8 +260,8 @@ async function fetchSubredditInfo(subredditName, accessToken) {
     banner_img: subredditData.banner_img || subredditData.banner_background_image
   };
 }
-// Function to fetch hot posts from subreddit with OAuth
-async function fetchSubredditHotPosts(subredditName, limit = 10, accessToken) {
+// Function to fetch hot posts from subreddit with OAuth (removed translation logic)
+async function fetchSubredditHotPosts(subredditName: string, limit = 10, accessToken: string) {
   const url = `https://oauth.reddit.com/r/${subredditName}/hot?limit=${limit}`;
   const response = await fetch(url, {
     headers: {
@@ -186,14 +271,16 @@ async function fetchSubredditHotPosts(subredditName, limit = 10, accessToken) {
     }
   });
   if (!response.ok) {
-    const errorText = await response.text().catch(()=>'Unknown error');
+    const errorText = await response.text().catch(() => 'Unknown error');
     throw new Error(`Failed to fetch hot posts: ${response.status} ${response.statusText}. Response: ${errorText}`);
   }
   const data = await response.json();
   if (!data.data || !data.data.children) {
     return [];
   }
-  const posts = data.data.children.map((child)=>{
+  
+  // Return posts without translations - translations will be handled in batch
+  const posts = data.data.children.map((child: any) => {
     const post = child.data;
     return {
       id: post.id,
@@ -209,53 +296,35 @@ async function fetchSubredditHotPosts(subredditName, limit = 10, accessToken) {
       permalink: `https://reddit.com${post.permalink}`
     };
   });
-  // Translate post titles to Chinese
-  const titles = posts.map((post)=>post.title);
-  let translatedTitles = [];
-  try {
-    translatedTitles = await translateTextsBatchGoogle(titles);
-  } catch (error) {
-    translatedTitles = titles; // Fallback to original titles
-  }
-  // Add Chinese translations to posts
-  const postsWithTranslations = posts.map((post, index)=>({
-      ...post,
-      title_zh: translatedTitles[index] || post.title
-    }));
-  return postsWithTranslations;
+
+  return posts;
 }
 // Optimized database functions - fetch all data in single queries
-async function getAllSubredditsFromDatabase(subredditNames) {
+async function getAllSubredditsFromDatabase(subredditNames: string[]) {
   const supabase = getSupabaseClient();
-  const lowerCaseNames = subredditNames.map((name)=>name.toLowerCase());
+  const lowerCaseNames = subredditNames.map((name) => name.toLowerCase());
   const { data, error } = await supabase.from('subreddit_top').select('*').in('subreddit', lowerCaseNames);
   if (error && error.code !== 'PGRST116') {
     throw new Error(`Database query error: ${error.message}`);
   }
   // Convert array to map for O(1) lookup
-  const cachedData = {};
+  const cachedData: any = {};
   if (data) {
-    data.forEach((item)=>{
+    data.forEach((item: any) => {
       cachedData[item.subreddit] = item;
     });
   }
   return cachedData;
 }
 // Function to get default subreddits from sys_config table - single query
-async function getDefaultSubreddits() {
+async function getDefaultSubreddits(): Promise<string[]> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.from('sys_config').select('data').eq('biz_code', 'reddit_default_subreddits').single();
   if (error) {
-    return [
-      'saas',
-      'technology'
-    ];
+    return ['saas', 'technology'];
   }
   if (!data || !data.data) {
-    return [
-      'saas',
-      'technology'
-    ];
+    return ['saas', 'technology'];
   }
   try {
     let configData;
@@ -265,28 +334,17 @@ async function getDefaultSubreddits() {
       configData = data.data;
     }
     if (!configData || !configData.subreddits || !Array.isArray(configData.subreddits)) {
-      return [
-        'saas',
-        'technology'
-      ];
+      return ['saas', 'technology'];
     }
     return configData.subreddits;
   } catch (parseError) {
-    return [
-      'saas',
-      'technology'
-    ];
+    return ['saas', 'technology'];
   }
 }
-async function saveSubredditToDatabase(subredditInfo, hotPosts) {
+// Modified save function to accept pre-translated data
+async function saveSubredditToDatabase(subredditInfo: any, hotPosts: any[], titleZh: string) {
   const supabase = getSupabaseClient();
-  // Translate subreddit title
-  let titleZh = '';
-  try {
-    titleZh = await translateToChineseWithGoogle(subredditInfo.title || '');
-  } catch (error) {
-    titleZh = await translateToChineseWithAI(subredditInfo.title || '');
-  }
+  
   const dbRecord = {
     id: subredditInfo.subreddit,
     subreddit: subredditInfo.subreddit,
@@ -312,10 +370,10 @@ async function saveSubredditToDatabase(subredditInfo, hotPosts) {
   }
 }
 // Check if we need fresh data for any subreddit
-function needsFreshData(subredditNames, cachedData, forceRefresh) {
+function needsFreshData(subredditNames: string[], cachedData: any, forceRefresh: boolean): boolean {
   if (forceRefresh) return true;
   const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
-  for (const name of subredditNames){
+  for (const name of subredditNames) {
     const cleanName = name.trim().toLowerCase();
     const cached = cachedData[cleanName];
     if (!cached) return true;
@@ -324,8 +382,8 @@ function needsFreshData(subredditNames, cachedData, forceRefresh) {
   }
   return false;
 }
-// Main processing function for a single subreddit
-async function processSubreddit(subredditName, limit, forceRefresh, cachedData, accessToken) {
+// Optimized main processing function for a single subreddit
+async function processSubreddit(subredditName: string, limit: number, forceRefresh: boolean, cachedData: any, accessToken?: string) {
   const cleanSubredditName = subredditName.trim().toLowerCase();
   try {
     // Check if we should use cached data
@@ -344,26 +402,38 @@ async function processSubreddit(subredditName, limit, forceRefresh, cachedData, 
     if (!accessToken) {
       throw new Error('Access token required for fetching fresh data');
     }
-    // Fetch fresh data from Reddit
+    
+    const translationStartTime = Date.now();
+    
+    // Fetch fresh data from Reddit (without individual translations)
     const [subredditInfo, hotPosts] = await Promise.all([
       fetchSubredditInfo(cleanSubredditName, accessToken),
       fetchSubredditHotPosts(cleanSubredditName, limit, accessToken)
     ]);
-    // Translate subreddit title
-    let titleZh = '';
-    if (subredditInfo.title) {
-      try {
-        titleZh = await translateToChineseWithGoogle(subredditInfo.title);
-      } catch (error) {
-        titleZh = await translateToChineseWithAI(subredditInfo.title);
-      }
-    }
-    // Save to database
-    await saveSubredditToDatabase(subredditInfo, hotPosts);
+
+    // Extract all texts that need translation
+    const subredditTitle = subredditInfo.title || '';
+    const postTitles = hotPosts.map((post: any) => post.title);
+
+    // Perform single batch translation for this subreddit
+    const { subredditTitleZh, postTitlesZh } = await translateSubredditTextsInBatch(subredditTitle, postTitles);
+    
+    const translationEndTime = Date.now();
+    console.log(`🌐 r/${cleanSubredditName} 批量翻译完成，耗时 ${translationEndTime - translationStartTime}ms`);
+
+    // Add Chinese translations to posts
+    const postsWithTranslations = hotPosts.map((post: any, index: number) => ({
+      ...post,
+      title_zh: postTitlesZh[index] || post.title
+    }));
+
+    // Save to database with translated title
+    await saveSubredditToDatabase(subredditInfo, postsWithTranslations, subredditTitleZh);
+
     return {
       ...subredditInfo,
-      title_zh: titleZh,
-      hot_posts: hotPosts,
+      title_zh: subredditTitleZh,
+      hot_posts: postsWithTranslations,
       last_updated: new Date().toISOString(),
       source: 'fresh'
     };
@@ -372,7 +442,7 @@ async function processSubreddit(subredditName, limit, forceRefresh, cachedData, 
   }
 }
 // Request validation
-async function validateRequest(body) {
+async function validateRequest(body: any) {
   let subreddits = body.subreddits;
   // Check if subreddits is empty, null, undefined, or not an array
   if (!subreddits || !Array.isArray(subreddits) || subreddits.length === 0) {
@@ -405,14 +475,14 @@ const corsHeaders = {
   'Vary': 'Origin'
 };
 // Helper function to create CORS-enabled responses
-function createCorsResponse(data, status = 200) {
+function createCorsResponse(data: any, status = 200) {
   return new Response(typeof data === 'string' ? data : JSON.stringify(data), {
     status,
     headers: corsHeaders
   });
 }
 // Main handler
-Deno.serve(async (req)=>{
+Deno.serve(async (req) => {
   const requestStartTime = Date.now();
   console.log(`🚀 Request started at ${new Date().toISOString()}`);
   // Handle CORS preflight requests (OPTIONS)
@@ -425,15 +495,12 @@ Deno.serve(async (req)=>{
       return createCorsResponse({
         error: 'Method not allowed',
         message: 'Only POST requests are supported.',
-        allowed_methods: [
-          'POST',
-          'OPTIONS'
-        ]
+        allowed_methods: ['POST', 'OPTIONS']
       }, 405);
     }
     // Parse request body
     const parseStartTime = Date.now();
-    let body = {};
+    let body: any = {};
     try {
       const textBody = await req.text();
       if (textBody.trim()) {
@@ -473,7 +540,7 @@ Deno.serve(async (req)=>{
     // Process all subreddits with optimized parallel processing
     const processingStartTime = Date.now();
     console.log(`⚡ Starting parallel processing of subreddits...`);
-    const promises = subreddits.map(async (subreddit)=>{
+    const promises = subreddits.map(async (subreddit: string) => {
       const subredditStartTime = Date.now();
       try {
         const data = await processSubreddit(subreddit, limit, forceRefresh, cachedData, accessToken);
@@ -490,9 +557,7 @@ Deno.serve(async (req)=>{
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
           subreddit,
-          data: {
-            error: errorMessage
-          },
+          data: { error: errorMessage },
           success: false
         };
       }
@@ -502,7 +567,7 @@ Deno.serve(async (req)=>{
     console.log(`🔄 All subreddits processed in ${processingEndTime - processingStartTime}ms`);
     // Process results
     const resultsProcessingStartTime = Date.now();
-    const orderedResults = results.map((result, index)=>{
+    const orderedResults = results.map((result, index) => {
       const subreddit = subreddits[index];
       if (result.status === 'fulfilled') {
         return {
@@ -512,9 +577,7 @@ Deno.serve(async (req)=>{
       } else {
         return {
           subreddit,
-          data: {
-            error: 'Promise rejected'
-          }
+          data: { error: 'Promise rejected' }
         };
       }
     });
