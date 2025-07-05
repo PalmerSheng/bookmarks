@@ -20,7 +20,7 @@ export default defineConfig(({ command, mode }) => {
       outDir: 'dist',
       assetsDir: 'assets',
       // 生产环境优化配置
-      minify: mode === 'production' ? 'terser' : false,
+      minify: mode === 'production' ? true : false,
       sourcemap: mode !== 'production',
       rollupOptions: {
         output: {
