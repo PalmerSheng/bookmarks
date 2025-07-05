@@ -50,6 +50,7 @@ if (!clerkPublishableKey) {
   app.use(clerkPlugin, {
     publishableKey: clerkPublishableKey,
     afterSignOutUrl: '/',
+    telemetry: false,
     appearance: {
       baseTheme: undefined,
       variables: {
@@ -61,6 +62,9 @@ if (!clerkPublishableKey) {
         colorInputText: '#1f2937',
         borderRadius: '0.5rem'
       }
+    },
+    experimental: {
+      disableSmartLinks: true
     }
   })
 }
