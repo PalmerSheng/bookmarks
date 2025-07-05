@@ -1,6 +1,10 @@
 <template>
   <div class="reddit-overview">
     <div class="container">
+    <div class="overview-header">
+          <h2 class="overview-title">{{ $t('reddit.overview.title') }}</h2>
+          <p class="overview-subtitle">{{ $t('reddit.overview.subtitle') }}</p>
+        </div>
       <!-- 搜索组件 -->
       <SubredditSearch @search="handleSearch" @refresh="loadPosts" />
       
@@ -35,10 +39,7 @@
       
       <!-- 默认内容 -->
       <div v-else>
-        <div class="overview-header">
-          <h2 class="overview-title">{{ $t('reddit.overview.title') }}</h2>
-          <p class="overview-subtitle">{{ $t('reddit.overview.subtitle') }}</p>
-        </div>
+        
 
         <ErrorMessage 
           v-if="redditStore.hasError" 
@@ -56,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRedditStore } from '../stores/reddit.js'
 import SubredditGroupList from '../components/SubredditGroupList.vue'
 import SubredditSearch from '../components/SubredditSearch.vue'
@@ -72,18 +73,44 @@ const staticSubreddits = ref([
 
 // 计算当前要显示的 subreddits：优先使用静态列表，如果为空则使用动态列表
 const subreddits = computed(() => {
+  console.log('🔍 subreddits computed property called')
+  console.log('📋 staticSubreddits.value:', staticSubreddits.value)
+  console.log('🗃️ redditStore.availableSubreddits:', redditStore.availableSubreddits)
+  console.log('📊 redditStore.posts keys:', Object.keys(redditStore.posts))
+  
   if (staticSubreddits.value.length > 0) {
+    console.log('✅ Using static subreddits:', staticSubreddits.value)
     return staticSubreddits.value
   }
   // 如果没有配置静态 subreddits，使用从 API 返回的动态列表
-  return redditStore.availableSubreddits
+  const available = redditStore.availableSubreddits
+  console.log('🔄 Using available subreddits:', available)
+  return available
 })
+
+// 添加一个监听器来观察 subreddits 的变化
+watch(subreddits, (newSubreddits, oldSubreddits) => {
+  console.log('👀 subreddits changed from:', oldSubreddits, 'to:', newSubreddits)
+}, { immediate: true })
 
 const currentSearchQuery = ref('')
 const showSearchResult = computed(() => !!redditStore.searchResult || redditStore.isSearching || redditStore.hasSearchError)
 
 const loadPosts = async () => {
+  console.log('🔄 loadPosts called, staticSubreddits:', staticSubreddits.value)
+  console.log('📊 Current posts state before fetch:', Object.keys(redditStore.posts))
+  console.log('🔍 Current availableSubreddits before fetch:', redditStore.availableSubreddits)
+  
+  // 确保清除搜索结果，显示默认内容
+  if (redditStore.searchResult) {
+    redditStore.clearSearchResult()
+  }
+  
   await redditStore.fetchPosts(staticSubreddits.value, 10, false)
+  
+  console.log('📊 Posts state after fetch:', Object.keys(redditStore.posts))
+  console.log('🔍 availableSubreddits after fetch:', redditStore.availableSubreddits)
+  console.log('📋 subreddits computed property:', subreddits.value)
 }
 
 const handleSearch = (query) => {
@@ -109,7 +136,6 @@ onMounted(() => {
 <style scoped>
 .reddit-overview {
   min-height: calc(100vh - 200px);
-  padding: 2rem 0;
 }
 
 .container {

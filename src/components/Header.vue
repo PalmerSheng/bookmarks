@@ -333,7 +333,7 @@ if (typeof window !== 'undefined') {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 1rem;
   position: relative;
@@ -348,6 +348,12 @@ if (typeof window !== 'undefined') {
   min-height: 60px;
 }
 
+.logo {
+  width: 300px;
+  min-width: 300px;
+  flex-shrink: 0;
+}
+
 .logo h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -356,6 +362,9 @@ if (typeof window !== 'undefined') {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .logo p {
@@ -462,6 +471,7 @@ if (typeof window !== 'undefined') {
 
 /* 右侧功能区 */
 .header-actions {
+  width:300px;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -680,6 +690,11 @@ if (typeof window !== 'undefined') {
     padding: 0 1rem;
   }
   
+  .logo {
+    width: 250px;
+    min-width: 250px;
+  }
+  
   .header-content {
     gap: 0.75rem;
   }
@@ -736,6 +751,8 @@ if (typeof window !== 'undefined') {
     order: 1;
     flex: 1;
     text-align: left;
+    width: auto;
+    min-width: auto;
   }
   
   .header-actions {
@@ -890,6 +907,11 @@ if (typeof window !== 'undefined') {
   
   .nav-content {
     width: 260px;
+  }
+  
+  .logo {
+    width: auto;
+    min-width: auto;
   }
   
   .logo h1 {

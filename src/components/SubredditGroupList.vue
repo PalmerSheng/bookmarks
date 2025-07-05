@@ -7,7 +7,12 @@
         class="subreddit-group"
       >
         <div class="group-header">
-          <h3 class="subreddit-title">r/{{ subreddit }}</h3>
+          <div class="subreddit-title-section">
+            <h3 class="subreddit-title">r/{{ subreddit }}</h3>
+            <p v-if="getSubredditTitle(subreddit)" class="subreddit-subtitle">
+              {{ getSubredditTitle(subreddit) }}
+            </p>
+          </div>
           <div class="subreddit-meta">
             <!-- <div class="post-count">
               {{ getPostCount(subreddit) }} {{ $t('post.posts') }}
@@ -30,15 +35,27 @@
               class="post-item"
             >
               <div class="post-meta">
-                <span class="score">{{ formatNumber(post.score) }}</span>
+                <div class="score-container">
+                  <svg class="upvote-arrow" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M7.247 4.86l-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+                  </svg>
+                  <span class="score">{{ formatNumber(post.score) }}</span>
+                </div>
               </div>
               <div class="post-info">
-                <h4 
-                  class="post-title"
-                  :title="currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title"
+                <a 
+                  :href="post.url" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="post-title-link"
                 >
-                  {{ currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title }}
-                </h4>
+                  <h4 
+                    class="post-title"
+                    :title="currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title"
+                  >
+                    {{ currentLocale === 'zh' && (post.titleZh || post.title_zh) ? (post.titleZh || post.title_zh) : post.title }}
+                  </h4>
+                </a>
                 <div class="post-details">
                   <div class="post-author-time">
                     <span class="author" :title="post.author">{{ post.author }}</span>
@@ -53,17 +70,6 @@
                   </div>
                 </div>
               </div>
-              <a 
-                :href="post.url" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="external-link"
-              >
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
-                  <path d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
-                </svg>
-              </a>
             </div>
           </div>
           
@@ -142,6 +148,17 @@ const formatTime = (timestamp) => {
     return `${diffInDays}d ago`
   }
 }
+
+const getSubredditTitle = (subreddit) => {
+  const subredditData = redditStore.posts[subreddit]
+  if (!subredditData) return ''
+  
+  if (currentLocale.value === 'zh' && subredditData.title_zh) {
+    return subredditData.title_zh
+  }
+  
+  return subredditData.title || ''
+}
 </script>
 
 <style scoped>
@@ -185,10 +202,25 @@ const formatTime = (timestamp) => {
   align-items: center;
 }
 
+.subreddit-title-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .subreddit-title {
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
+}
+
+.subreddit-subtitle {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0.25rem 0 0 0;
+  line-height: 1.3;
+  max-width: 500px;
 }
 
 .subreddit-meta {
@@ -258,11 +290,36 @@ const formatTime = (timestamp) => {
   padding-top: 0.1rem;
 }
 
+.score-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.upvote-arrow {
+  width: 14px;
+  height: 14px;
+  color: #ff4500;
+  transition: all 0.3s ease;
+}
+
+.post-item:hover .upvote-arrow {
+  transform: translateY(-2px);
+  color: #ff6500;
+}
+
 .score {
   font-weight: 600;
   color: #ff4500;
   font-size: 0.8rem;
   line-height: 1;
+  transition: all 0.3s ease;
+}
+
+.post-item:hover .score {
+  color: #ff6500;
+  transform: scale(1.05);
 }
 
 .post-info {
@@ -275,21 +332,36 @@ const formatTime = (timestamp) => {
   padding: 0.1rem 0;
 }
 
+.post-title-link {
+  color: #333;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: block;
+}
+
+.post-title-link:hover {
+  color: #667eea;
+}
+
+.post-title-link:hover .post-title {
+  color: #667eea;
+}
+
 .post-title {
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 1.3;
   margin: 0;
-  color: #333;
+  color: inherit;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;
-  cursor: pointer;
   flex: 0 0 auto;
   max-height: 2.6em;
+  transition: all 0.3s ease;
 }
 
 .post-title:hover::after {
@@ -372,30 +444,6 @@ const formatTime = (timestamp) => {
   line-height: 1;
 }
 
-.external-link {
-  color: #667eea;
-  opacity: 0.7;
-  transition: all 0.3s ease;
-  padding: 0.25rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  align-self: flex-start;
-  margin-top: 0.1rem;
-}
-
-.external-link svg {
-  width: 14px;
-  height: 14px;
-}
-
-.external-link:hover {
-  opacity: 1;
-  background: rgba(102, 126, 234, 0.1);
-}
-
 .no-posts {
   display: flex;
   justify-content: center;
@@ -433,18 +481,28 @@ const formatTime = (timestamp) => {
     align-items: flex-start;
   }
   
+  .subreddit-title-section {
+    width: 100%;
+  }
+  
   .subreddit-meta {
     align-items: flex-start;
     width: 100%;
   }
   
+  .subreddit-title {
+    font-size: 1.1rem;
+  }
+  
+  .subreddit-subtitle {
+    font-size: 0.8rem;
+    max-width: 100%;
+    margin-top: 0.15rem;
+  }
+  
   .update-info {
     align-items: flex-start;
     margin-top: 0.5rem;
-  }
-  
-  .subreddit-title {
-    font-size: 1.1rem;
   }
   
   .posts-list {
@@ -469,6 +527,11 @@ const formatTime = (timestamp) => {
   
   .score {
     font-size: 0.75rem;
+  }
+  
+  .upvote-arrow {
+    width: 12px;
+    height: 12px;
   }
   
   .post-title {
@@ -507,15 +570,6 @@ const formatTime = (timestamp) => {
   
   .comment-count {
     font-size: 0.65rem;
-  }
-  
-  .external-link {
-    padding: 0.2rem;
-  }
-  
-  .external-link svg {
-    width: 12px;
-    height: 12px;
   }
 }
 

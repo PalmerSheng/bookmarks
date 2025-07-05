@@ -6,7 +6,12 @@
         <span class="author">{{ $t('post.author') }} {{ post.author }}</span>
       </div>
       <div class="post-stats">
-        <span class="score">{{ formatNumber(post.score) }} {{ $t('post.score') }}</span>
+        <div class="score-container">
+          <svg class="upvote-arrow" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M7.247 4.86l-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+          </svg>
+          <span class="score">{{ formatNumber(post.score) }}</span>
+        </div>
         <span class="comments">{{ post.comment_count }} {{ $t('post.comments') }}</span>
       </div>
     </div>
@@ -151,9 +156,33 @@ const formatTime = (timestamp) => {
   color: #888;
 }
 
+.score-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.upvote-arrow {
+  transform: rotate(180deg);
+  color: #ff4500;
+  transition: all 0.3s ease;
+}
+
+.post-card:hover .upvote-arrow {
+  transform: rotate(180deg) translateY(-2px);
+  color: #ff6500;
+}
+
 .score {
   color: #ff4500;
   font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.post-card:hover .score {
+  color: #ff6500;
+  transform: scale(1.05);
 }
 
 .post-title {
@@ -235,6 +264,15 @@ const formatTime = (timestamp) => {
   
   .post-stats {
     gap: 0.5rem;
+  }
+  
+  .score-container {
+    gap: 0.3rem;
+  }
+  
+  .upvote-arrow {
+    width: 14px;
+    height: 14px;
   }
   
   .post-title {
