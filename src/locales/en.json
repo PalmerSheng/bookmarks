@@ -11,7 +11,8 @@
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "profile": "Profile",
-    "account": "Account"
+    "account": "Account",
+    "authDisabled": "Auth Disabled"
   },
   "home": {
     "welcome": {
